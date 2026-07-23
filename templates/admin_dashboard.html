@@ -1,9 +1,8 @@
-<!-- templates/admin_dashboard.html -->
 {% extends "base.html" %}
 
 {% block content %}
 <div class="row">
-    <!-- Left Hand Side Side Controls Panel Column -->
+    <!-- Left Hand Side Controls Panel -->
     <div class="col-md-4 mb-4">
         <!-- GLOBAL CMS SETTINGS COMPONENT -->
         <div class="card bg-dark text-white shadow border-0 p-3 mb-4">
@@ -72,7 +71,7 @@
             </div>
         </div>
 
-        <!-- FIXED RE-INTEGRATED PROMOTIONAL OFFER BANNER CREATOR CARD -->
+        <!-- OFFER BANNER CREATOR CARD -->
         <div class="card shadow border-0 mt-4 border-info">
             <div class="card-body p-4">
                 <h5 class="fw-bold text-info mb-3"><i class="bi bi-image"></i> Launch Offer Banner</h5>
@@ -134,6 +133,59 @@
 
     <!-- Right Side Content Dataset Column -->
     <div class="col-md-8">
+        <!-- USER MANAGEMENT CONTROL PANEL (NEW FEATURE) -->
+        <div class="card shadow border-0 p-4 mb-4 border-primary">
+            <h5 class="fw-bold text-primary mb-3"><i class="bi bi-people-fill"></i> Registered Users Directory & Controls</h5>
+            <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                <table class="table table-hover align-middle small">
+                    <thead class="table-primary">
+                        <tr>
+                            <th>User ID</th>
+                            <th>Username</th>
+                            <th>Email Address</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users %}
+                        <tr>
+                            <td class="fw-bold">#{{ user.id }}</td>
+                            <td>
+                                <form id="user-form-{{ user.id }}" action="{{ url_for('admin.edit_user', user_id=user.id) }}" method="POST" class="d-flex gap-1">
+                                    <input type="text" name="username" class="form-control form-control-sm px-1" value="{{ user.username }}" style="width: 100px;" required>
+                            </td>
+                            <td>
+                                    <input type="email" name="email" class="form-control form-control-sm px-1" value="{{ user.email }}" required>
+                            </td>
+                            <td>
+                                    <select name="role" class="form-select form-select-sm px-1" style="width: 90px;">
+                                        <option value="customer" {% if user.role == 'customer' %}selected{% endif %}>customer</option>
+                                        <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>admin</option>
+                                    </select>
+                            </td>
+                            <td>
+                                <span class="badge {% if user.is_verified %}bg-success{% else %}bg-warning text-dark{% endif %}">
+                                    {{ 'Verified' if user.is_verified else 'Unverified' }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="d-flex gap-1">
+                                    <button type="submit" class="btn btn-sm btn-outline-success py-0 px-2 shadow-sm" title="Save Changes"><i class="bi bi-check-lg"></i> Save</button>
+                                </form>
+                                    <form action="{{ url_for('admin.delete_user', user_id=user.id) }}" method="POST" onsubmit="return confirm('Is user account ko Hamesha ke liye Delete karna chahte hain?');">
+                                        <button type="submit" class="btn btn-sm btn-danger py-0 px-2" title="Delete User"><i class="bi bi-trash3-fill"></i></button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
         <!-- Active Banners Panel List Controls -->
         <div class="card shadow border-0 p-4 mb-4">
             <h5 class="fw-bold text-info mb-3"><i class="bi bi-images"></i> Active Promotional Banners & Offer Controls</h5>

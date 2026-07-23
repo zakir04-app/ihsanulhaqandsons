@@ -1,4 +1,3 @@
-# routes/admin.py
 import os
 import csv
 import io
@@ -78,18 +77,51 @@ def dashboard():
     
     cursor.execute("SELECT COUNT(*) as count FROM orders WHERE status = 'Pending'")
     total_orders = cursor.fetchone()['count']
+
+    # --- FETCH USER DATA FOR ADMIN ---
+    cursor.execute("SELECT id, username, email, role, is_verified FROM users ORDER BY id DESC")
+    users = cursor.fetchall()
     
     conn.close()
-    return render_template('admin_dashboard.html', products=products, categories=categories, banners=banners, orders=orders, total_orders=total_orders)
+    return render_template('admin_dashboard.html', products=products, categories=categories, banners=banners, orders=orders, total_orders=total_orders, users=users)
 
-# NEW FEATURE: Direct Template Downloader Generator
+# --- USER MANAGEMENT ROUTES (EDIT & DELETE) ---
+@admin_bp.route('/user/edit/<int:user_id>', methods=['POST'])
+def edit_user(user_id):
+    if not is_admin(): return redirect(url_for('auth.login'))
+    
+    username = request.form.get('username').strip()
+    email = request.form.get('email').strip()
+    role = request.form.get('role').strip()
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE users SET username = ?, email = ?, role = ? WHERE id = ?", (username, email, role, user_id))
+    conn.commit()
+    conn.close()
+    
+    flash(f"User #{user_id} account details successfully update ho gayi hain!", 'success')
+    return redirect(url_for('admin.dashboard'))
+
+@admin_bp.route('/user/delete/<int:user_id>', methods=['POST'])
+def delete_user(user_id):
+    if not is_admin(): return redirect(url_for('auth.login'))
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM users WHERE id = ?", (user_id,))
+    conn.commit()
+    conn.close()
+    
+    flash("User account successfully delete kar diya gaya hai!", 'warning')
+    return redirect(url_for('admin.dashboard'))
+
 @admin_bp.route('/bulk-template', methods=['GET'])
 def download_template():
     if not is_admin(): return redirect(url_for('auth.login'))
     
     output = io.StringIO()
     writer = csv.writer(output)
-    # Correct columns recognized by our parser block
     writer.writerow(['name', 'description', 'price', 'stock', 'image_url', 'category'])
     writer.writerow(['Sufi Sun Oil 1L', 'Pure cooking oil batch A', '520.00', '100', 'https://example.com/oil.jpg', 'Cooking Essentials'])
     writer.writerow(['Tapal Danedar 430g', 'Premium leaf strong tea', '680.00', '50', '', 'Beverages'])
