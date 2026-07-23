@@ -1,11 +1,42 @@
 import random
 import sys
+import os
+import requests
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, current_app
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask_mail import Message
 from database.db_handler import get_db_connection
 
 auth_bp = Blueprint('auth', __name__)
+
+def send_email_via_brevo_api(recipient_email, username, otp_code):
+    """Sends OTP using Brevo HTTPS API on Port 443 (Bypasses Render SMTP Blocks)"""
+    api_key = os.environ.get('BREVO_API_KEY', 'FyExk7nvDBS4POHM')
+    url = "https://api.brevo.com/v3/smtp/email"
+    
+    headers = {
+        "accept": "application/json",
+        "api-key": api_key,
+        "content-type": "application/json"
+    }
+    
+    payload = {
+        "sender": {"name": "Ihsan Grocery Shop", "email": "zakir.ullah0004@gmail.com"},
+        "to": [{"email": recipient_email}],
+        "subject": "Ihsan Grocery Shop - Verification Code",
+        "htmlContent": f"<h3>Assalam-o-Alaikum {username},</h3><p>Apka 6-Digit Verification OTP Code: <b>{otp_code}</b></p>"
+    }
+    
+    try:
+        response = requests.post(url, json=payload, headers=headers, timeout=10)
+        if response.status_code in [200, 201, 202]:
+            print(f"--> SUCCESS: Brevo API sent OTP to {recipient_email}", file=sys.stderr)
+            return True
+        else:
+            print(f"--> BREVO API ERROR: {response.status_code} - {response.text}", file=sys.stderr)
+            return False
+    except Exception as e:
+        print(f"--> API REQUEST EXCEPTION: {str(e)}", file=sys.stderr)
+        return False
 
 @auth_bp.route('/register', methods=['GET', 'POST'])
 def register():
@@ -39,17 +70,13 @@ def register():
             ''', (username, email, password_hash, otp))
             conn.commit()
             
-            # --- DIRECT EMAIL DISPATCH ENGINE ---
-            try:
-                mail = current_app.extensions.get('mail')
-                msg = Message("Ihsan Grocery Shop - Email Verification Code", recipients=[email])
-                msg.body = f"Assalam-o-Alaikum {username},\n\nApka 6-Digit Verification OTP Code yeh hai: {otp}\n\nApna account verify karne ke liye yeh code website par enter karein."
-                mail.send(msg)
-                print(f"--> SUCCESS: OTP sent via email to {email}", file=sys.stderr)
+            # --- EMAIL DISPATCH VIA HTTPS API ---
+            sent = send_email_via_brevo_api(email, username, otp)
+            if sent:
                 flash('Verification code aapke Email inbox par bhej diya gaya hai.', 'info')
-            except Exception as mail_error:
-                print(f"--> SMTP MAIL ERROR: {str(mail_error)}", file=sys.stderr)
-                flash('Email sending mein masla aaya hai. Kripya app password check karein.', 'error')
+            else:
+                # Testing fallback message so you aren't blocked during testing
+                flash(f'Email send nahi ho saka. (Testing OTP Code: {otp})', 'warning')
 
             session['verify_email'] = email
             return redirect(url_for('auth.verify_otp'))
@@ -117,15 +144,11 @@ def login():
                 conn.commit()
                 conn.close()
                 
-                try:
-                    mail = current_app.extensions.get('mail')
-                    msg = Message("Ihsan Grocery Shop - New Verification Code", recipients=[user['email']])
-                    msg.body = f"Assalam-o-Alaikum {user['username']},\n\nApka naya 6-Digit Verification OTP Code yeh hai: {new_otp}"
-                    mail.send(msg)
+                sent = send_email_via_brevo_api(user['email'], user['username'], new_otp)
+                if sent:
                     flash('Apka email verified nahi hai. Naya OTP aapki email par bhej diya gaya hai.', 'warning')
-                except Exception as mail_err:
-                    print(f"--> LOGIN SMTP ERROR: {str(mail_err)}", file=sys.stderr)
-                    flash('Email send nahi ho saka. App Password check karein.', 'error')
+                else:
+                    flash(f'Email send nahi ho saka. (Testing OTP Code: {new_otp})', 'warning')
                 
                 return redirect(url_for('auth.verify_otp'))
                 
