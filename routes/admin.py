@@ -78,14 +78,54 @@ def dashboard():
     cursor.execute("SELECT COUNT(*) as count FROM orders WHERE status = 'Pending'")
     total_orders = cursor.fetchone()['count']
 
-    # --- FETCH USER DATA FOR ADMIN ---
+    # --- FETCH USER DATA FOR ADMIN MANAGEMENT ---
     cursor.execute("SELECT id, username, email, role, is_verified FROM users ORDER BY id DESC")
     users = cursor.fetchall()
     
     conn.close()
     return render_template('admin_dashboard.html', products=products, categories=categories, banners=banners, orders=orders, total_orders=total_orders, users=users)
 
-# --- USER MANAGEMENT ROUTES (EDIT & DELETE) ---
+# --- ADVANCED CMS & STORE LAYOUT SETTINGS ---
+@admin_bp.route('/settings/update', methods=['POST'])
+def update_settings():
+    if not is_admin(): return redirect(url_for('auth.login'))
+    
+    store_title = request.form.get('store_title', '').strip()
+    primary_color = request.form.get('primary_color', '#198754').strip()
+    contact_phone = request.form.get('contact_phone', '').strip()
+    contact_email = request.form.get('contact_email', '').strip()
+    contact_address = request.form.get('contact_address', '').strip()
+    whatsapp_no = request.form.get('whatsapp_no', '').strip()
+    about_text = request.form.get('about_text', '').strip()
+    
+    uploaded_cover = handle_image_upload('cover_file')
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    settings_dict = {
+        'store_title': store_title,
+        'primary_color': primary_color,
+        'contact_phone': contact_phone,
+        'contact_email': contact_email,
+        'contact_address': contact_address,
+        'whatsapp_no': whatsapp_no,
+        'about_text': about_text
+    }
+    
+    for key, val in settings_dict.items():
+        if val:
+            cursor.execute("INSERT OR REPLACE INTO site_settings (key, value) VALUES (?, ?)", (key, val))
+            
+    if uploaded_cover:
+        cursor.execute("INSERT OR REPLACE INTO site_settings (key, value) VALUES ('cover_image', ?)", (uploaded_cover,))
+        
+    conn.commit()
+    conn.close()
+    flash('Website Layout, Theme Color & Dynamic Content successfully updated!', 'success')
+    return redirect(url_for('admin.dashboard'))
+
+# --- USER MANAGEMENT ROUTES ---
 @admin_bp.route('/user/edit/<int:user_id>', methods=['POST'])
 def edit_user(user_id):
     if not is_admin(): return redirect(url_for('auth.login'))
@@ -116,6 +156,55 @@ def delete_user(user_id):
     flash("User account successfully delete kar diya gaya hai!", 'warning')
     return redirect(url_for('admin.dashboard'))
 
+@admin_bp.route('/banner/add', methods=['POST'])
+def add_banner():
+    if not is_admin(): return redirect(url_for('auth.login'))
+    title = request.form.get('title').strip()
+    offer_text = request.form.get('offer_text').strip()
+    discount_percentage = int(request.form.get('discount_percentage', 0))
+    selected_products = request.form.getlist('offer_products')
+    uploaded_banner = handle_image_upload('banner_file')
+    fallback_url = request.form.get('image_url').strip()
+    image_url = uploaded_banner if uploaded_banner else fallback_url
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('INSERT INTO banners (title, offer_text, image_url, discount_percentage) VALUES (?, ?, ?, ?)', (title, offer_text, image_url, discount_percentage))
+    banner_id = cursor.lastrowid
+    
+    if selected_products:
+        for prod_id in selected_products:
+            cursor.execute("UPDATE products SET banner_id = ? WHERE id = ?", (banner_id, prod_id))
+            
+    conn.commit()
+    conn.close()
+    flash('Offer Banner added & Published!', 'success')
+    return redirect(url_for('admin.dashboard'))
+
+@admin_bp.route('/banner/edit/<int:banner_id>', methods=['POST'])
+def edit_banner(banner_id):
+    if not is_admin(): return redirect(url_for('auth.login'))
+    new_discount = int(request.form.get('discount_percentage', 0))
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE banners SET discount_percentage = ? WHERE id = ?", (new_discount, banner_id))
+    conn.commit()
+    conn.close()
+    flash('Banner Discount updated!', 'success')
+    return redirect(url_for('admin.dashboard'))
+
+@admin_bp.route('/banner/delete/<int:banner_id>', methods=['POST'])
+def delete_banner(banner_id):
+    if not is_admin(): return redirect(url_for('auth.login'))
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE products SET banner_id = NULL WHERE banner_id = ?", (banner_id,))
+    cursor.execute("DELETE FROM banners WHERE id = ?", (banner_id,))
+    conn.commit()
+    conn.close()
+    flash('Banner removed successfully!', 'info')
+    return redirect(url_for('admin.dashboard'))
+
 @admin_bp.route('/bulk-template', methods=['GET'])
 def download_template():
     if not is_admin(): return redirect(url_for('auth.login'))
@@ -129,65 +218,6 @@ def download_template():
     response = Response(output.getvalue(), mimetype='text/csv')
     response.headers['Content-Disposition'] = 'attachment; filename=sample_products_template.csv'
     return response
-
-@admin_bp.route('/settings/update', methods=['POST'])
-def update_settings():
-    if not is_admin(): return redirect(url_for('auth.login'))
-    store_title = request.form.get('store_title').strip()
-    uploaded_cover = handle_image_upload('cover_file')
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    if store_title:
-        cursor.execute("INSERT OR REPLACE INTO site_settings (key, value) VALUES ('store_title', ?)", (store_title,))
-    if uploaded_cover:
-        cursor.execute("INSERT OR REPLACE INTO site_settings (key, value) VALUES ('cover_image', ?)", (uploaded_cover,))
-    conn.commit()
-    conn.close()
-    flash('Website branding assets updated!', 'success')
-    return redirect(url_for('admin.dashboard'))
-
-@admin_bp.route('/banner/add', methods=['POST'])
-def add_banner():
-    if not is_admin(): return redirect(url_for('auth.login'))
-    title = request.form.get('title').strip()
-    offer_text = request.form.get('offer_text').strip()
-    discount_percentage = int(request.form.get('discount_percentage', 0))
-    selected_products = request.form.getlist('offer_products')
-    uploaded_banner = handle_image_upload('banner_file')
-    fallback_url = request.form.get('image_url').strip()
-    image_url = uploaded_banner if uploaded_banner else fallback_url
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute('INSERT INTO banners (title, offer_text, image_url, discount_percentage) VALUES (?, ?, ?, ?)', (title, offer_text, image_url, discount_percentage))
-    banner_id = cursor.lastrowid
-    if selected_products:
-        for prod_id in selected_products:
-            cursor.execute("UPDATE products SET banner_id = ? WHERE id = ?", (banner_id, prod_id))
-    conn.commit()
-    conn.close()
-    return redirect(url_for('admin.dashboard'))
-
-@admin_bp.route('/banner/edit/<int:banner_id>', methods=['POST'])
-def edit_banner(banner_id):
-    if not is_admin(): return redirect(url_for('auth.login'))
-    new_discount = int(request.form.get('discount_percentage', 0))
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("UPDATE banners SET discount_percentage = ? WHERE id = ?", (new_discount, banner_id))
-    conn.commit()
-    conn.close()
-    return redirect(url_for('admin.dashboard'))
-
-@admin_bp.route('/banner/delete/<int:banner_id>', methods=['POST'])
-def delete_banner(banner_id):
-    if not is_admin(): return redirect(url_for('auth.login'))
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("UPDATE products SET banner_id = NULL WHERE banner_id = ?", (banner_id,))
-    cursor.execute("DELETE FROM banners WHERE id = ?", (banner_id,))
-    conn.commit()
-    conn.close()
-    return redirect(url_for('admin.dashboard'))
 
 @admin_bp.route('/bulk-upload', methods=['POST'])
 def bulk_upload():
@@ -214,10 +244,10 @@ def bulk_upload():
                 ''', (row['name'].strip(), row.get('description', '').strip(), float(row['price']), int(row['stock']), row.get('image_url', '').strip(), cat))
                 count += 1
         conn.commit()
-        flash(f'Inventory successfully synchronized! {count} products added via Bulk Upload.', 'success')
+        flash(f'Inventory synchronized! {count} products added via Bulk Upload.', 'success')
     except Exception as e:
         print("--> CSV PARSE EXCEPTION:", str(e))
-        flash(f'CSV Format Parsing Error: {str(e)}. Excel layout validation check karein.', 'error')
+        flash(f'CSV Format Parsing Error: {str(e)}.', 'error')
     finally:
         conn.close()
         if os.path.exists(filepath): os.remove(filepath)

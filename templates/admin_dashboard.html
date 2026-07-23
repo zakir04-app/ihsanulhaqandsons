@@ -4,20 +4,57 @@
 <div class="row">
     <!-- Left Hand Side Controls Panel -->
     <div class="col-md-4 mb-4">
-        <!-- GLOBAL CMS SETTINGS COMPONENT -->
+        <!-- GLOBAL CMS & THEME SETTINGS COMPONENT -->
         <div class="card bg-dark text-white shadow border-0 p-3 mb-4">
             <div class="card-body">
-                <h5 class="fw-bold text-warning mb-3"><i class="bi bi-sliders"></i> Store Layout Controls</h5>
+                <h5 class="fw-bold text-warning mb-3"><i class="bi bi-sliders"></i> Store CMS & Theme Controls</h5>
                 <form action="{{ url_for('admin.update_settings') }}" method="POST" enctype="multipart/form-data">
                     <div class="mb-2">
-                        <label class="form-label small text-white-50 mb-0">Dynamic Store Brand Name</label>
+                        <label class="form-label small text-white-50 mb-0">Store Brand Title</label>
                         <input type="text" name="store_title" class="form-control form-control-sm" value="{{ site_title }}">
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label small text-white-50 mb-0">Upload Main Layout Cover File</label>
+
+                    <div class="mb-2">
+                        <label class="form-label small text-white-50 mb-0">Website Theme Primary Color</label>
+                        <input type="color" name="primary_color" class="form-control form-control-color form-control-sm w-100" value="{{ primary_color }}">
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="form-label small text-white-50 mb-0">Main Layout Cover File</label>
                         <input type="file" name="cover_file" class="form-control form-control-sm" accept="image/*">
                     </div>
-                    <button type="submit" class="btn btn-warning btn-sm w-100 fw-bold">Apply Core Visual Changes</button>
+
+                    <hr class="border-secondary my-2">
+                    <h6 class="text-info fw-bold small mb-2">Contact Us Details</h6>
+
+                    <div class="mb-2">
+                        <label class="form-label small text-white-50 mb-0">Phone Number</label>
+                        <input type="text" name="contact_phone" class="form-control form-control-sm" value="{{ contact_phone }}">
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="form-label small text-white-50 mb-0">Support Email</label>
+                        <input type="email" name="contact_email" class="form-control form-control-sm" value="{{ contact_email }}">
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="form-label small text-white-50 mb-0">Physical Store Address</label>
+                        <input type="text" name="contact_address" class="form-control form-control-sm" value="{{ contact_address }}">
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="form-label small text-white-50 mb-0">WhatsApp Number (e.g. 923001234567)</label>
+                        <input type="text" name="whatsapp_no" class="form-control form-control-sm" value="{{ whatsapp_no }}">
+                    </div>
+
+                    <hr class="border-secondary my-2">
+                    <h6 class="text-info fw-bold small mb-2">About Us Content</h6>
+
+                    <div class="mb-3">
+                        <textarea name="about_text" class="form-control form-control-sm" rows="3">{{ about_text }}</textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-warning btn-sm w-100 fw-bold">Apply All CMS & Theme Changes</button>
                 </form>
             </div>
         </div>
@@ -133,7 +170,7 @@
 
     <!-- Right Side Content Dataset Column -->
     <div class="col-md-8">
-        <!-- USER MANAGEMENT CONTROL PANEL (NEW FEATURE) -->
+        <!-- USER MANAGEMENT CONTROL PANEL -->
         <div class="card shadow border-0 p-4 mb-4 border-primary">
             <h5 class="fw-bold text-primary mb-3"><i class="bi bi-people-fill"></i> Registered Users Directory & Controls</h5>
             <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">

@@ -1,4 +1,3 @@
-# routes/customer.py
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from database.db_handler import get_db_connection
 
@@ -11,6 +10,7 @@ def home():
     
     category_filter = request.args.get('category')
     
+    # Banners Order
     cursor.execute("SELECT * FROM banners ORDER BY id DESC")
     banners = cursor.fetchall()
     
@@ -27,7 +27,7 @@ def home():
     banner_discounts = {b['id']: b['discount_percentage'] for b in cursor.fetchall()}
     
     conn.close()
-    return render_template('home.html', products=products, categories=categories, banners=banners, banner_discounts=banner_discounts, selected_category=category_filter)
+    return render_template('index.html', products=products, categories=categories, banners=banners, banner_discounts=banner_discounts, selected_category=category_filter)
 
 @customer_bp.route('/about')
 def about():
@@ -49,7 +49,7 @@ def add_to_cart(product_id):
     conn.close()
     
     if not product_exists:
-        flash('Maazrat, yeh product ab inventory mein available nahi hai.', 'error')
+        flash('Maazrat, yeh product inventory mein available nahi hai.', 'error')
         return redirect(request.referrer or url_for('customer.home'))
         
     cart[pid] = cart.get(pid, 0) + 1
@@ -159,7 +159,6 @@ def checkout():
             return redirect(url_for('customer.checkout'))
             
         try:
-            # Secure transactional insertion process
             cursor.execute('''
                 INSERT INTO orders (user_id, total_price, payment_method, transaction_id, status)
                 VALUES (?, ?, ?, ?, 'Pending')
@@ -181,14 +180,13 @@ def checkout():
                 
             conn.commit()
             session.pop('cart', None)
-            flash(f'Alhamdulillah! Apka order successfully queue ho gaya hai. Order ID: #{order_id}', 'success')
+            flash(f'Alhamdulillah! Apka order successfully submit ho gaya hai. Order ID: #{order_id}', 'success')
             return redirect(url_for('customer.home'))
             
         except Exception as e:
-            # Transcation rollback layer if anything fails
             conn.rollback()
-            print("--> INVOICE PROCESSING EXCEPTION ERROR:", str(e))
-            flash(f'Order placement ke dauran technical error aya: {str(e)}', 'error')
+            print("--> INVOICE PROCESSING ERROR:", str(e))
+            flash(f'Order placement ke dauran error aya: {str(e)}', 'error')
         finally:
             conn.close()
             

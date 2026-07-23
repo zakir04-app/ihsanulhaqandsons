@@ -1,21 +1,30 @@
-<!-- templates/index.html -->
 {% extends "base.html" %}
 
 {% block content %}
-<!-- Offers/Banners Display Hub -->
+<!-- Dynamic Banners Carousel Slider Section -->
 {% if banners %}
 <div id="groceryOfferCarousel" class="carousel slide shadow rounded overflow-hidden mb-5 border-0" data-bs-ride="carousel">
     <div class="carousel-inner">
         {% for banner in banners %}
         <div class="carousel-item {% if loop.first %}active{% endif %}" data-bs-interval="4000">
+            {% if banner.image_url %}
             <div class="position-relative" style="height: 280px; background: url('{{ banner.image_url }}') center/cover no-repeat; background-color: #2b303a;">
                 <div class="position-absolute top-0 start-0 w-100 h-100" style="background: rgba(0,0,0,0.45);"></div>
                 <div class="position-absolute top-50 start-0 translate-middle-y text-white ps-5 ms-3">
-                    <span class="badge bg-warning text-dark fw-bold mb-2 text-uppercase tracking-wider">Mega Offer!</span>
+                    <span class="badge bg-warning text-dark fw-bold mb-2 text-uppercase tracking-wider">Special Offer!</span>
                     <h1 class="fw-extrabold display-5 mb-1">{{ banner.title }}</h1>
                     <p class="lead text-white-50 fw-semibold">{{ banner.offer_text }}</p>
+                    <span class="badge bg-danger fs-6">{{ banner.discount_percentage }}% Discount</span>
                 </div>
             </div>
+            {% else %}
+            <div class="p-5 text-white text-center bg-dark" style="height: 280px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                <span class="badge bg-warning text-dark fw-bold mb-2 text-uppercase">Special Offer!</span>
+                <h1 class="fw-extrabold display-5 mb-1">{{ banner.title }}</h1>
+                <p class="lead text-white-50 fw-semibold">{{ banner.offer_text }}</p>
+                <span class="badge bg-danger fs-6">{{ banner.discount_percentage }}% Discount</span>
+            </div>
+            {% endif %}
         </div>
         {% endfor %}
     </div>
@@ -28,10 +37,10 @@
 </div>
 {% endif %}
 
-<!-- Shop Identity and Products Row -->
+<!-- Shop Identity and Products Header -->
 <div class="d-flex align-items-center justify-content-between mb-4 mt-2">
     <h3 class="fw-bold text-dark mb-0"><i class="bi bi-shop text-success"></i> Fresh Grocery Stock</h3>
-    <span class="text-muted small fw-semibold">Premium Supermarket Quality</span>
+    <span class="text-muted small fw-semibold">Supermarket Quality</span>
 </div>
 
 <div class="row row-cols-1 row-cols-md-4 g-4">
@@ -49,7 +58,7 @@
             <div class="card-body p-3 d-flex flex-column justify-content-between">
                 <div>
                     <h5 class="card-title fw-bold text-dark mb-1 fs-6">{{ product.name }}</h5>
-                    <p class="text-muted small mb-3 text-truncate-2">{{ product.description or 'Fresh imported grocery inventory token item.' }}</p>
+                    <p class="text-muted small mb-3 text-truncate-2">{{ product.description or 'Fresh quality product.' }}</p>
                 </div>
                 <div class="d-flex align-items-center justify-content-between mt-2">
                     <span class="fw-bold fs-5 text-success">PKR {{ product.price }}</span>
