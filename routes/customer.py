@@ -6,8 +6,10 @@ from database.db_handler import get_db_connection
 
 customer_bp = Blueprint('customer', __name__)
 
-def send_invoice_email(recipient_email, username, order_id, cart_items, grand_total, payment_method, trx_id):
-    """Sends Complete HTML Itemized Bill / Invoice to Customer via Brevo API"""
+ADMIN_NOTIFICATION_EMAIL = "zakir.ullah0004@gmail.com"
+
+def send_email_via_brevo(to_email, subject, html_content):
+    """Generic function to send transactional emails via Brevo HTTPS API"""
     api_key = os.environ.get('BREVO_API_KEY', 'FyExk7nvDBS4POHM')
     url = "https://api.brevo.com/v3/smtp/email"
     
@@ -17,53 +19,10 @@ def send_invoice_email(recipient_email, username, order_id, cart_items, grand_to
         "content-type": "application/json"
     }
     
-    # Build HTML Table Rows for Items
-    items_rows = ""
-    for item in cart_items:
-        items_rows += f"""
-        <tr>
-            <td style="padding: 8px; border-bottom: 1px solid #ddd;">{item['name']}</td>
-            <td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: center;">{item['qty']}</td>
-            <td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: right;">PKR {item['price']:.2f}</td>
-            <td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: right; font-weight: bold;">PKR {item['total']:.2f}</td>
-        </tr>
-        """
-        
-    html_content = f"""
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #e0e0e0; padding: 20px; rounded-corner: 10px;">
-        <h2 style="color: #198754; text-align: center;">Ihsan Ul Haq & Sons General Store</h2>
-        <h4 style="text-align: center; color: #555;">Order Confirmation & Official Bill</h4>
-        <hr>
-        <p><b>Customer Name:</b> {username}</p>
-        <p><b>Order ID:</b> #{order_id}</p>
-        <p><b>Payment Gateway:</b> {payment_method} {f'(TRX: {trx_id})' if trx_id else ''}</p>
-        
-        <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
-            <thead>
-                <tr style="background-color: #f8f9fa;">
-                    <th style="padding: 8px; text-align: left; border-bottom: 2px solid #ddd;">Item Description</th>
-                    <th style="padding: 8px; text-align: center; border-bottom: 2px solid #ddd;">Qty</th>
-                    <th style="padding: 8px; text-align: right; border-bottom: 2px solid #ddd;">Unit Price</th>
-                    <th style="padding: 8px; text-align: right; border-bottom: 2px solid #ddd;">Subtotal</th>
-                </tr>
-            </thead>
-            <tbody>
-                {items_rows}
-            </tbody>
-        </table>
-        
-        <div style="text-align: right; margin-top: 20px; font-size: 18px;">
-            <p><b>Grand Total Payable: <span style="color: #198754;">PKR {grand_total:.2f}</span></b></p>
-        </div>
-        <hr>
-        <p style="font-size: 12px; color: #777; text-align: center;">Hum se khareedari karne ka shukriya!</p>
-    </div>
-    """
-    
     payload = {
-        "sender": {"name": "Ihsan Grocery Store", "email": "zakir.ullah0004@gmail.com"},
-        "to": [{"email": recipient_email}],
-        "subject": f"Official Invoice & Order Receipt #{order_id} - Ihsan Store",
+        "sender": {"name": "Ihsan Grocery Store", "email": ADMIN_NOTIFICATION_EMAIL},
+        "to": [{"email": to_email}],
+        "subject": subject,
         "htmlContent": html_content
     }
     
@@ -71,8 +30,66 @@ def send_invoice_email(recipient_email, username, order_id, cart_items, grand_to
         response = requests.post(url, json=payload, headers=headers, timeout=10)
         return response.status_code in [200, 201, 202]
     except Exception as e:
-        print(f"--> INVOICE EMAIL EXCEPTION: {str(e)}", file=sys.stderr)
+        print(f"--> BREVO EMAIL ERROR: {str(e)}", file=sys.stderr)
         return False
+
+def generate_invoice_html(username, order_id, cart_items, grand_total, payment_method, trx_id, is_admin_copy=False):
+    """Generates a professional HTML invoice table with Original Price, Offers, and Quantities"""
+    
+    items_rows = ""
+    for item in cart_items:
+        offer_info = f"<br><small style='color: #d9534f;'>Discount: {item['discount_percent']}% OFF (Orig: PKR {item['original_price']:.2f})</small>" if item['discount_percent'] > 0 else ""
+        
+        items_rows += f"""
+        <tr>
+            <td style="padding: 10px; border-bottom: 1px solid #eee;">
+                <b>{item['name']}</b> {offer_info}
+            </td>
+            <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center;">{item['qty']}</td>
+            <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right;">PKR {item['price']:.2f}</td>
+            <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right; font-weight: bold;">PKR {item['total']:.2f}</td>
+        </tr>
+        """
+        
+    header_title = "NEW ORDER RECEIVED!" if is_admin_copy else "Order Confirmation & Official Bill"
+    header_bg = "#0d6efd" if is_admin_copy else "#198754"
+    
+    html_content = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 650px; margin: auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
+        <div style="background-color: {header_bg}; color: white; padding: 15px; text-align: center;">
+            <h2 style="margin: 0;">Ihsan Ul Haq & Sons General Store</h2>
+            <p style="margin: 5px 0 0 0;">{header_title}</p>
+        </div>
+        
+        <div style="padding: 20px;">
+            <table style="width: 100%; margin-bottom: 15px; font-size: 14px;">
+                <tr><td><b>Customer Name:</b> {username}</td><td style="text-align: right;"><b>Order ID:</b> #{order_id}</td></tr>
+                <tr><td><b>Payment Method:</b> {payment_method}</td><td style="text-align: right;"><b>TRX ID:</b> {trx_id if trx_id else 'N/A'}</td></tr>
+            </table>
+            
+            <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                <thead>
+                    <tr style="background-color: #f8f9fa;">
+                        <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd;">Item Details</th>
+                        <th style="padding: 10px; text-align: center; border-bottom: 2px solid #ddd;">Qty</th>
+                        <th style="padding: 10px; text-align: right; border-bottom: 2px solid #ddd;">Final Unit Price</th>
+                        <th style="padding: 10px; text-align: right; border-bottom: 2px solid #ddd;">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {items_rows}
+                </tbody>
+            </table>
+            
+            <div style="text-align: right; margin-top: 20px; font-size: 18px;">
+                <p><b>Grand Total Payable: <span style="color: #198754;">PKR {grand_total:.2f}</span></b></p>
+            </div>
+            <hr style="border: none; border-top: 1px solid #eee;">
+            <p style="font-size: 12px; color: #777; text-align: center;">Ihsan Store - Quality Products Delivered with Trust.</p>
+        </div>
+    </div>
+    """
+    return html_content
 
 @customer_bp.route('/')
 def home():
@@ -214,7 +231,7 @@ def view_cart():
     cursor = conn.cursor()
     
     cart_items = []
-    grand_total = 0
+    grand_total = 0.0
     verified_cart_session = {}
     
     for pid, qty in list(cart.items()):
@@ -227,19 +244,22 @@ def view_cart():
         product = cursor.fetchone()
         
         if product:
-            price = product['price']
-            if product['discount_percentage']:
-                price = price * (1 - product['discount_percentage'] / 100)
-                
-            subtotal = price * qty
+            orig_price = round(product['price'], 2)
+            disc_percent = product['discount_percentage'] if product['discount_percentage'] else 0
+            
+            final_price = orig_price * (1 - disc_percent / 100) if disc_percent > 0 else orig_price
+            final_price = round(final_price, 2)
+            subtotal = round(final_price * qty, 2)
             grand_total += subtotal
             
             cart_items.append({
                 'id': product['id'],
                 'name': product['name'],
-                'price': round(price, 2),
+                'original_price': orig_price,
+                'discount_percent': disc_percent,
+                'price': final_price,
                 'qty': qty,
-                'total': round(subtotal, 2)
+                'total': subtotal
             })
             verified_cart_session[pid] = qty
             
@@ -275,18 +295,20 @@ def checkout():
         ''', (int(pid),))
         prod = cursor.fetchone()
         if prod:
-            price = prod['price']
-            if prod['discount_percentage']:
-                price = price * (1 - prod['discount_percentage'] / 100)
+            orig_price = round(prod['price'], 2)
+            disc_percent = prod['discount_percentage'] if prod['discount_percentage'] else 0
             
-            price = round(price, 2)
-            subtotal = round(price * qty, 2)
+            final_price = orig_price * (1 - disc_percent / 100) if disc_percent > 0 else orig_price
+            final_price = round(final_price, 2)
+            subtotal = round(final_price * qty, 2)
             grand_total += subtotal
             
             cart_items.append({
                 'id': prod['id'],
                 'name': prod['name'],
-                'price': price,
+                'original_price': orig_price,
+                'discount_percent': disc_percent,
+                'price': final_price,
                 'qty': qty,
                 'total': subtotal
             })
@@ -305,7 +327,7 @@ def checkout():
         try:
             cursor.execute('''
                 INSERT INTO orders (user_id, total_price, payment_method, transaction_id, status)
-                VALUES (?, ?, ?, ?, 'Pending')
+                VALUES (?, ?, ?, ?, 'Placed Order')
             ''', (session['user_id'], grand_total, payment_method, trx_id if trx_id else None))
             
             order_id = cursor.lastrowid
@@ -320,21 +342,25 @@ def checkout():
                 
             conn.commit()
             
-            # Fetch User details for sending Email
             cursor.execute("SELECT username, email FROM users WHERE id = ?", (session['user_id'],))
             user_info = cursor.fetchone()
             
             if user_info:
-                send_invoice_email(user_info['email'], user_info['username'], order_id, cart_items, grand_total, payment_method, trx_id)
+                # 1. Send Bill to Customer
+                cust_html = generate_invoice_html(user_info['username'], order_id, cart_items, grand_total, payment_method, trx_id, is_admin_copy=False)
+                send_email_via_brevo(user_info['email'], f"Order Confirmation #{order_id} - Ihsan Store", cust_html)
+                
+                # 2. Send Alert to Admin
+                admin_html = generate_invoice_html(user_info['username'], order_id, cart_items, grand_total, payment_method, trx_id, is_admin_copy=True)
+                send_email_via_brevo(ADMIN_NOTIFICATION_EMAIL, f"ACTION REQUIRED: New Order #{order_id} Received from {user_info['username']}", admin_html)
             
             session.pop('cart', None)
-            flash(f'Alhamdulillah! Apka order successfully submit ho gaya hai. Bill email par bhej diya gaya hai. Order ID: #{order_id}', 'success')
+            flash(f'Alhamdulillah! Apka order submit ho gaya hai. Bill email par bhej diya gaya hai. Order ID: #{order_id}', 'success')
             return redirect(url_for('customer.home'))
             
         except Exception as e:
             conn.rollback()
-            print("--> INVOICE PROCESSING ERROR:", str(e))
-            flash(f'Order placement ke dauran error aya: {str(e)}', 'error')
+            flash(f'Order placement error: {str(e)}', 'error')
         finally:
             conn.close()
             
