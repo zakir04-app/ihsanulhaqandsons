@@ -15,7 +15,6 @@ def is_admin():
     return session.get('role') == 'admin'
 
 def send_order_email(recipient_email, username, order_id, status):
-    """Sends Order Status Update Email to Customer via Brevo HTTPS API"""
     api_key = os.environ.get('BREVO_API_KEY', 'FyExk7nvDBS4POHM')
     url = "https://api.brevo.com/v3/smtp/email"
     
@@ -28,8 +27,8 @@ def send_order_email(recipient_email, username, order_id, status):
     payload = {
         "sender": {"name": "Ihsan Grocery Store", "email": "zakir.ullah0004@gmail.com"},
         "to": [{"email": recipient_email}],
-        "subject": f"Order #{order_id} Update - {status}",
-        "htmlContent": f"<h3>Assalam-o-Alaikum {username},</h3><p>Apke <b>Order #{order_id}</b> ka status update hoker <span style='color:green; font-weight:bold;'>{status}</span> ho gaya hai.</p><p>Ihsan Ul Haq & Sons General Store ki taraf se shukriya!</p>"
+        "subject": f"Order #{order_id} Status Update - {status}",
+        "htmlContent": f"<h3>Assalam-o-Alaikum {username},</h3><p>Apke <b>Order #{order_id}</b> ka status change hoker: <span style='color:green; font-weight:bold;'>{status}</span> ho gaya hai.</p><p>Shukriya!</p>"
     }
     
     try:
@@ -82,7 +81,7 @@ def dashboard():
             VALUES (?, ?, ?, ?, ?, ?)
         ''', (name, description, price, stock, image_url, category))
         conn.commit()
-        flash('Product dynamic properties ke sath list ho gaya!', 'success')
+        flash('Product dynamic properties ke sath catalog me list ho gaya!', 'success')
         return redirect(url_for('admin.dashboard'))
         
     cursor.execute("SELECT * FROM products ORDER BY id DESC")
@@ -94,10 +93,11 @@ def dashboard():
     cursor.execute("SELECT * FROM banners ORDER BY id DESC")
     banners = cursor.fetchall()
     
+    # LEFT JOIN so orders with any user ID show up correctly
     cursor.execute('''
-        SELECT orders.id, users.username, users.email, orders.total_price, orders.payment_method, orders.transaction_id, orders.status 
+        SELECT orders.id, COALESCE(users.username, 'Guest User') as username, COALESCE(users.email, 'N/A') as email, orders.total_price, orders.payment_method, orders.transaction_id, orders.status 
         FROM orders 
-        JOIN users ON orders.user_id = users.id
+        LEFT JOIN users ON orders.user_id = users.id
         ORDER BY orders.id DESC
     ''')
     orders = cursor.fetchall()
@@ -105,6 +105,7 @@ def dashboard():
     cursor.execute("SELECT COUNT(*) as count FROM orders WHERE status = 'Pending'")
     total_orders = cursor.fetchone()['count']
 
+    # Fetch all registered users
     cursor.execute("SELECT id, username, email, role, is_verified FROM users ORDER BY id DESC")
     users = cursor.fetchall()
     
@@ -159,10 +160,11 @@ def update_order_status(order_id, status):
     
     conn = get_db_connection()
     cursor = conn.cursor()
+    
     cursor.execute('''
         SELECT users.email, users.username 
         FROM orders 
-        JOIN users ON orders.user_id = users.id 
+        LEFT JOIN users ON orders.user_id = users.id 
         WHERE orders.id = ?
     ''', (order_id,))
     customer_info = cursor.fetchone()
@@ -171,10 +173,10 @@ def update_order_status(order_id, status):
     conn.commit()
     conn.close()
     
-    if customer_info:
+    if customer_info and customer_info['email'] != 'N/A':
         send_order_email(customer_info['email'], customer_info['username'], order_id, status)
         
-    flash(f"Order #{order_id} status updated to {status} aur Email notification bhej diya gaya hai!", 'success')
+    flash(f"Order #{order_id} status updated to {status} aur customer ko email bhej diya gaya hai!", 'success')
     return redirect(url_for('admin.dashboard'))
 
 @admin_bp.route('/user/edit/<int:user_id>', methods=['POST'])

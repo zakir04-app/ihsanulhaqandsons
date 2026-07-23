@@ -1,93 +1,76 @@
-<!-- templates/checkout.html -->
 {% extends "base.html" %}
 
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-md-6">
-        <div class="card shadow border-0 p-4">
-            <h4 class="fw-bold text-success mb-3"><i class="bi bi-shield-check"></i> Secure Checkout Invoice</h4>
-            <hr>
-            <div class="d-flex justify-content-between mb-4">
-                <span class="fs-5 fw-semibold text-muted">Grand Total Payable:</span>
-                <span class="fs-4 fw-bold text-dark">PKR {{ grand_total }}</span>
+    <div class="col-md-8">
+        <div class="card shadow border-0 p-4 rounded-4 bg-white">
+            <h3 class="fw-bold text-success mb-3"><i class="bi bi-shield-check"></i> Secure Checkout Invoice</h3>
+            <p class="text-muted small mb-4">Aapke order ki mukammal Tafseelat (Bill Summary) niche di gayi hai.</p>
+
+            <!-- Itemized Invoice Bill Table -->
+            <div class="table-responsive mb-4">
+                <table class="table table-bordered align-middle small">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Item Description</th>
+                            <th class="text-center">Qty</th>
+                            <th class="text-end">Unit Price</th>
+                            <th class="text-end">Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in cart_items %}
+                        <tr>
+                            <td class="fw-bold text-dark">{{ item.name }}</td>
+                            <td class="text-center">{{ item.qty }}</td>
+                            <td class="text-end">PKR {{ "%.2f"|format(item.price) }}</td>
+                            <td class="text-end fw-bold text-success">PKR {{ "%.2f"|format(item.total) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr class="table-success">
+                            <td colspan="3" class="fw-bold text-end fs-6">Grand Total Payable:</td>
+                            <td class="fw-bold text-end fs-5 text-success">PKR {{ "%.2f"|format(grand_total) }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
             </div>
 
-            <form action="{{ url_for('customer.checkout') }}" method="POST" id="checkoutForm">
-                <h5 class="fw-bold text-dark mb-3">Choose Payment Method:</h5>
+            <!-- Payment Options Form -->
+            <form action="{{ url_for('customer.checkout') }}" method="POST">
+                <h5 class="fw-bold text-dark mb-3">Choose Payment Method</h5>
                 
-                <div class="form-check p-3 border rounded mb-2 bg-light">
-                    <input class="form-check-input ms-1" type="radio" name="payment_method" value="COD" id="pay_cod" checked onclick="togglePaymentFields()">
-                    <label class="form-check-label fw-bold text-dark ms-2" for="pay_cod">
-                        <i class="bi bi-truck"></i> Cash on Delivery (COD)
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="radio" name="payment_method" id="cod" value="COD" checked onclick="toggleTrxBox(false)">
+                    <label class="form-check-label fw-bold" for="cod">
+                        <i class="bi bi-truck text-success"></i> Cash on Delivery (COD)
                     </label>
                 </div>
 
-                <div class="form-check p-3 border rounded mb-2 bg-light">
-                    <input class="form-check-input ms-1" type="radio" name="payment_method" value="EasyPaisa" id="pay_ep" onclick="togglePaymentFields()">
-                    <label class="form-check-label fw-bold text-success ms-2" for="pay_ep">
-                        <i class="bi bi-wallet2"></i> EasyPaisa (Mobile Wallet)
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="radio" name="payment_method" id="easypaisa" value="EasyPaisa" onclick="toggleTrxBox(true)">
+                    <label class="form-check-label fw-bold" for="easypaisa">
+                        <i class="bi bi-wallet2 text-primary"></i> EasyPaisa / JazzCash
                     </label>
                 </div>
 
-                <div class="form-check p-3 border rounded mb-3 bg-light">
-                    <input class="form-check-input ms-1" type="radio" name="payment_method" value="JazzCash" id="pay_jc" onclick="togglePaymentFields()">
-                    <label class="form-check-label fw-bold text-danger ms-2" for="pay_jc">
-                        <i class="bi bi-phone-vibrate"></i> JazzCash (Mobile Wallet)
-                    </label>
+                <div id="trx_box" class="mt-3 p-3 border rounded bg-light" style="display: none;">
+                    <label class="form-label small fw-bold text-danger">Mobile Wallet Transaction (TRX) ID Code</label>
+                    <input type="text" name="transaction_id" class="form-control form-control-sm" placeholder="e.g. 0192837465">
                 </div>
 
-                <!-- DYNAMIC WALLET INSTRUCTION DISPLAY BOX -->
-                <div id="wallet_instructions_panel" class="card border-warning bg-light p-3 mb-3 d-none shadow-sm">
-                    <h6 class="fw-bold text-warning mb-2"><i class="bi bi-info-circle-fill"></i> Merchant Payment Steps:</h6>
-                    <p class="small text-dark mb-2">
-                        Meharbani karke apne Mobile account se total amount **PKR {{ grand_total }}** nichay diye gaye mobile wallet number par transfer karein:
-                    </p>
-                    
-                    <div id="ep_details" class="d-none bg-white border p-2 rounded mb-2">
-                        <div class="small text-muted">EasyPaisa Account Number:</div>
-                        <div class="fw-bold fs-5 text-success">+923195894880</div>
-                        <div class="small text-dark fw-semibold">Title: Personal Wallet Account</div>
-                    </div>
-
-                    <div id="jc_details" class="d-none bg-white border p-2 rounded mb-2">
-                        <div class="small text-muted">JazzCash Account Number:</div>
-                        <div class="fw-bold fs-5 text-danger">+923229014920</div>
-                        <div class="small text-dark fw-semibold">Title: Personal Wallet Account</div>
-                    </div>
-
-                    <div class="mt-3">
-                        <label class="form-label small fw-bold text-danger mb-1">Enter 3737 / 8585 Payment Transaction ID (TRX ID):</label>
-                        <input type="text" name="transaction_id" id="trx_id_field" class="form-control" placeholder="e.g. 12049583921">
-                    </div>
-                </div>
-
-                <button type="submit" class="btn btn-success w-100 fw-bold py-2 shadow mt-2">Confirm & Place Order Securely</button>
+                <button type="submit" class="btn btn-success w-100 fw-bold mt-4 py-2 rounded-pill shadow">
+                    Confirm Order & Send Bill Receipt
+                </button>
             </form>
         </div>
     </div>
 </div>
 
 <script>
-function togglePaymentFields() {
-    var panel = document.getElementById('wallet_instructions_panel');
-    var epBox = document.getElementById('ep_details');
-    var jcBox = document.getElementById('jc_details');
-    var trxField = document.getElementById('trx_id_field');
-
-    if (document.getElementById('pay_cod').checked) {
-        panel.classList.add('d-none');
-        trxField.removeAttribute('required');
-    } else if (document.getElementById('pay_ep').checked) {
-        panel.classList.remove('d-none');
-        epBox.classList.remove('d-none');
-        jcBox.classList.add('d-none');
-        trxField.setAttribute('required', 'required');
-    } else if (document.getElementById('pay_jc').checked) {
-        panel.classList.remove('d-none');
-        epBox.classList.add('d-none');
-        jcBox.classList.remove('d-none');
-        trxField.setAttribute('required', 'required');
-    }
+function toggleTrxBox(show) {
+    document.getElementById('trx_box').style.display = show ? 'block' : 'none';
 }
 </script>
 {% endblock %}
