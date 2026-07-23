@@ -2,12 +2,17 @@
 
 {% block content %}
 <div class="container-fluid py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="fw-bold text-success mb-0">
-            <i class="bi bi-speedometer2"></i> Admin Control Dashboard
-        </h2>
+    
+    <!-- HEADER TITLE & PENDING BADGE -->
+    <div class="d-flex justify-content-between align-items-center mb-4 bg-white p-3 rounded-3 shadow-sm border">
+        <div>
+            <h3 class="fw-bold text-success mb-0">
+                <i class="bi bi-speedometer2"></i> Admin Control Dashboard
+            </h3>
+            <small class="text-muted">Ihsan Ul Haq & Sons General Store Management</small>
+        </div>
         <span class="badge bg-danger fs-6 px-3 py-2 rounded-pill">
-            Pending Orders: {{ total_orders }}
+            <i class="bi bi-bell-fill me-1"></i> Pending Orders: {{ total_orders }}
         </span>
     </div>
 
@@ -15,7 +20,7 @@
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         {% for category, message in messages %}
-          <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show shadow-sm" role="alert">
+          <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show shadow-sm mb-4" role="alert">
             {{ message }}
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
           </div>
@@ -23,117 +28,50 @@
       {% endif %}
     {% endwith %}
 
-    <div class="row g-4">
-        <!-- LEFT COLUMN: HARD DISK BACKUP, CMS SETTINGS & BANNER MANAGEMENT -->
-        <div class="col-lg-4">
-            
-            <!-- 1. HARD DISK LOCAL BACKUP & RESTORE CARD -->
-            <div class="card shadow border-0 mb-4 border-start border-danger border-4">
-                <div class="card-body p-4">
-                    <h5 class="fw-bold text-danger mb-2">
-                        <i class="bi bi-hdd-fill text-danger"></i> Laptop Hard Disk Backup
-                    </h5>
-                    <p class="small text-muted mb-3">
-                        Render par data overwrite hone se bachane ke liye rozana yahan se Backup apne Laptop mein save karein.
-                    </p>
-                    
-                    <a href="{{ url_for('admin.backup_database') }}" class="btn btn-danger btn-sm w-100 fw-bold mb-3 shadow-sm">
-                        <i class="bi bi-download"></i> Save Data To Laptop Hard Disk
-                    </a>
+    <!-- ========================================== -->
+    <!-- MAIN NAVIGATION MENU BAR (BOOTSTRAP TABS)  -->
+    <!-- ========================================== -->
+    <ul class="nav nav-pills nav-fill bg-white p-2 rounded-3 shadow-sm border mb-4 gap-2" id="adminMenuTab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active fw-bold py-2" id="orders-tab" data-bs-toggle="tab" data-bs-target="#orders-sec" type="button" role="tab">
+                <i class="bi bi-box-seam me-1"></i> Live Orders & Packing
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link fw-bold py-2" id="inventory-tab" data-bs-toggle="tab" data-bs-target="#inventory-sec" type="button" role="tab">
+                <i class="bi bi-cart-plus me-1"></i> Inventory & Products
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link fw-bold py-2" id="users-tab" data-bs-toggle="tab" data-bs-target="#users-sec" type="button" role="tab">
+                <i class="bi bi-people-fill me-1"></i> Users Directory
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link fw-bold py-2" id="banners-tab" data-bs-toggle="tab" data-bs-target="#banners-sec" type="button" role="tab">
+                <i class="bi bi-megaphone me-1"></i> Offer Banners
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link fw-bold py-2" id="cms-tab" data-bs-toggle="tab" data-bs-target="#cms-sec" type="button" role="tab">
+                <i class="bi bi-sliders me-1"></i> CMS & Settings
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link fw-bold py-2 text-danger" id="backup-tab" data-bs-toggle="tab" data-bs-target="#backup-sec" type="button" role="tab">
+                <i class="bi bi-hdd-fill me-1"></i> Hard Disk Backup
+            </button>
+        </li>
+    </ul>
 
-                    <form action="{{ url_for('admin.restore_database') }}" method="POST" enctype="multipart/form-data" class="border-top pt-3">
-                        <label class="form-label small fw-bold text-dark mb-1">Restore Backup From Laptop</label>
-                        <input type="file" name="backup_db_file" class="form-control form-control-sm mb-2" accept=".db" required>
-                        <button type="submit" class="btn btn-outline-danger btn-sm w-100 fw-bold" onclick="return confirm('Kya aap purana backup data restore karna chahte hain?');">
-                            <i class="bi bi-upload"></i> Restore Data
-                        </button>
-                    </form>
-                </div>
-            </div>
-
-            <!-- 2. WEBSITE CMS BRANDING SETTINGS -->
-            <div class="card shadow border-0 mb-4">
-                <div class="card-body p-4">
-                    <h5 class="fw-bold text-success mb-3"><i class="bi bi-sliders"></i> Store Layout & CMS Settings</h5>
-                    <form action="{{ url_for('admin.update_settings') }}" method="POST" enctype="multipart/form-data">
-                        <div class="mb-2">
-                            <label class="form-label small fw-bold">Store Title Name</label>
-                            <input type="text" name="store_title" class="form-control form-control-sm" placeholder="Ihsan Ul Haq & Sons General Store">
-                        </div>
-                        <div class="mb-2">
-                            <label class="form-label small fw-bold">Theme Primary Color</label>
-                            <input type="color" name="primary_color" class="form-control form-control-color w-100" value="#198754">
-                        </div>
-                        <div class="mb-2">
-                            <label class="form-label small fw-bold">Contact Phone Number</label>
-                            <input type="text" name="contact_phone" class="form-control form-control-sm" placeholder="+92 300 0000000">
-                        </div>
-                        <div class="mb-2">
-                            <label class="form-label small fw-bold">WhatsApp Support Number</label>
-                            <input type="text" name="whatsapp_no" class="form-control form-control-sm" placeholder="923000000000">
-                        </div>
-                        <div class="mb-2">
-                            <label class="form-label small fw-bold">Store Logo (Upload File)</label>
-                            <input type="file" name="logo_file" class="form-control form-control-sm">
-                        </div>
-                        <div class="mb-2">
-                            <label class="form-label small fw-bold">Header Cover Image (Upload File)</label>
-                            <input type="file" name="cover_file" class="form-control form-control-sm">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold">About Us Section Content</label>
-                            <textarea name="about_text" class="form-control form-control-sm" rows="3" placeholder="Welcome to Ihsan Store..."></textarea>
-                        </div>
-                        <button type="submit" class="btn btn-success btn-sm w-100 fw-bold">
-                            <i class="bi bi-save"></i> Save CMS Settings
-                        </button>
-                    </form>
-                </div>
-            </div>
-
-            <!-- 3. ADD PROMOTIONAL OFFER BANNER -->
-            <div class="card shadow border-0 mb-4">
-                <div class="card-body p-4">
-                    <h5 class="fw-bold text-primary mb-3"><i class="bi bi-megaphone"></i> Publish Offer Banner</h5>
-                    <form action="{{ url_for('admin.add_banner') }}" method="POST" enctype="multipart/form-data">
-                        <div class="mb-2">
-                            <label class="form-label small fw-bold">Offer Title</label>
-                            <input type="text" name="title" class="form-control form-control-sm" placeholder="e.g. Ramadan Special Discount" required>
-                        </div>
-                        <div class="mb-2">
-                            <label class="form-label small fw-bold">Offer Subtext</label>
-                            <input type="text" name="offer_text" class="form-control form-control-sm" placeholder="e.g. Get 10% OFF on all items">
-                        </div>
-                        <div class="mb-2">
-                            <label class="form-label small fw-bold">Discount Percentage (%)</label>
-                            <input type="number" name="discount_percentage" class="form-control form-control-sm" placeholder="10" min="0" max="100" required>
-                        </div>
-                        <div class="mb-2">
-                            <label class="form-label small fw-bold">Banner Image Upload</label>
-                            <input type="file" name="banner_file" class="form-control form-control-sm">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold">Apply Discount To Products</label>
-                            <select name="offer_products" class="form-select form-select-sm" multiple style="height: 100px;">
-                                {% for prod in products %}
-                                    <option value="{{ prod.id }}">{{ prod.name }} (PKR {{ "%.2f"|format(prod.price) }})</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <button type="submit" class="btn btn-primary btn-sm w-100 fw-bold">
-                            <i class="bi bi-plus-circle"></i> Create Offer Banner
-                        </button>
-                    </form>
-                </div>
-            </div>
-
-        </div>
-
-        <!-- RIGHT COLUMN: ORDERS TRACKER, INVENTORY MANAGEMENT & USER DIRECTORY -->
-        <div class="col-lg-8">
-            
-            <!-- 1. ORDERS MONITORING & PACKING TRACKER (DETAILED ITEMS LIST) -->
-            <div class="card shadow border-0 mb-4">
+    <!-- ========================================== -->
+    <!-- MENU CONTENT SECTIONS CONTAINER            -->
+    <!-- ========================================== -->
+    <div class="tab-content" id="adminMenuTabContent">
+        
+        <!-- SECTION 1: LIVE ORDERS & PACKING TRACKER -->
+        <div class="tab-pane fade show active" id="orders-sec" role="tabpanel">
+            <div class="card shadow border-0">
                 <div class="card-header bg-dark text-white p-3">
                     <h5 class="fw-bold mb-0"><i class="bi bi-box-seam"></i> Live Customer Orders & Preparation List</h5>
                 </div>
@@ -210,16 +148,18 @@
                         </div>
                         {% endfor %}
                     {% else %}
-                        <div class="text-center py-4 text-muted">
+                        <div class="text-center py-5 text-muted">
                             <i class="bi bi-inbox fs-1 d-block mb-2"></i>
                             Abhi tak koi naya order receive nahi hua.
                         </div>
                     {% endif %}
                 </div>
             </div>
+        </div>
 
-            <!-- 2. INVENTORY & PRODUCT MANAGEMENT -->
-            <div class="card shadow border-0 mb-4">
+        <!-- SECTION 2: INVENTORY & PRODUCT MANAGEMENT -->
+        <div class="tab-pane fade" id="inventory-sec" role="tabpanel">
+            <div class="card shadow border-0">
                 <div class="card-header bg-success text-white p-3 d-flex justify-content-between align-items-center">
                     <h5 class="fw-bold mb-0"><i class="bi bi-cart-plus"></i> Inventory & Product Catalog</h5>
                     <a href="{{ url_for('admin.download_template') }}" class="btn btn-sm btn-light fw-bold">
@@ -228,57 +168,58 @@
                 </div>
                 <div class="card-body p-4">
                     
-                    <!-- BULK CSV UPLOAD FORM -->
-                    <form action="{{ url_for('admin.bulk_upload') }}" method="POST" enctype="multipart/form-data" class="mb-4 p-3 bg-light rounded border">
-                        <label class="form-label small fw-bold text-dark">Bulk Upload Products via CSV File</label>
-                        <div class="input-group input-group-sm">
-                            <input type="file" name="csv_file" class="form-control" accept=".csv" required>
-                            <button class="btn btn-success fw-bold" type="submit">Upload CSV</button>
+                    <div class="row g-4 mb-4">
+                        <!-- BULK CSV UPLOAD FORM -->
+                        <div class="col-md-6">
+                            <div class="p-3 bg-light rounded border h-100">
+                                <h6 class="fw-bold text-dark mb-2">Bulk Upload Products via CSV</h6>
+                                <form action="{{ url_for('admin.bulk_upload') }}" method="POST" enctype="multipart/form-data">
+                                    <div class="input-group input-group-sm mb-2">
+                                        <input type="file" name="csv_file" class="form-control" accept=".csv" required>
+                                        <button class="btn btn-success fw-bold" type="submit">Upload CSV</button>
+                                    </div>
+                                    <small class="text-muted">Fastest way to add hundreds of items at once.</small>
+                                </form>
+                            </div>
                         </div>
-                    </form>
 
-                    <!-- ADD SINGLE PRODUCT FORM -->
-                    <form action="{{ url_for('admin.dashboard') }}" method="POST" enctype="multipart/form-data" class="mb-4">
-                        <h6 class="fw-bold text-success mb-3">Add Single New Product</h6>
-                        <div class="row g-2">
-                            <div class="col-md-6 mb-2">
-                                <input type="text" name="name" class="form-control form-control-sm" placeholder="Product Title Name" required>
-                            </div>
-                            <div class="col-md-3 mb-2">
-                                <input type="number" step="0.01" name="price" class="form-control form-control-sm" placeholder="Price (PKR)" required>
-                            </div>
-                            <div class="col-md-3 mb-2">
-                                <input type="number" name="stock" class="form-control form-control-sm" placeholder="Stock Quantity" required>
-                            </div>
-                            <div class="col-md-6 mb-2">
-                                <select name="category_select" class="form-select form-select-sm">
-                                    <option value="">-- Select Existing Category --</option>
-                                    {% for cat in categories %}
-                                        <option value="{{ cat }}">{{ cat }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div class="col-md-6 mb-2">
-                                <input type="text" name="category_custom" class="form-control form-control-sm" placeholder="Or Type New Category">
-                            </div>
-                            <div class="col-md-6 mb-2">
-                                <label class="form-label micro text-muted mb-0">Upload Image File</label>
-                                <input type="file" name="product_file" class="form-control form-control-sm">
-                            </div>
-                            <div class="col-md-6 mb-2">
-                                <label class="form-label micro text-muted mb-0">Or Image Web URL Link</label>
-                                <input type="url" name="image_url" class="form-control form-control-sm" placeholder="https://...">
-                            </div>
-                            <div class="col-12 mb-3">
-                                <textarea name="description" class="form-control form-control-sm" rows="2" placeholder="Product description..."></textarea>
+                        <!-- ADD SINGLE PRODUCT FORM -->
+                        <div class="col-md-6">
+                            <div class="p-3 bg-light rounded border h-100">
+                                <h6 class="fw-bold text-success mb-2">Add Single New Product</h6>
+                                <form action="{{ url_for('admin.dashboard') }}" method="POST" enctype="multipart/form-data">
+                                    <div class="row g-2">
+                                        <div class="col-8">
+                                            <input type="text" name="name" class="form-control form-control-sm" placeholder="Product Title" required>
+                                        </div>
+                                        <div class="col-4">
+                                            <input type="number" step="0.01" name="price" class="form-control form-control-sm" placeholder="Price (PKR)" required>
+                                        </div>
+                                        <div class="col-6">
+                                            <input type="number" name="stock" class="form-control form-control-sm" placeholder="Stock Qty" required>
+                                        </div>
+                                        <div class="col-6">
+                                            <select name="category_select" class="form-select form-select-sm">
+                                                <option value="">Category...</option>
+                                                {% for cat in categories %}
+                                                    <option value="{{ cat }}">{{ cat }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="col-12">
+                                            <input type="file" name="product_file" class="form-control form-control-sm">
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="btn btn-success btn-sm fw-bold w-100 mt-2">
+                                        <i class="bi bi-plus-square"></i> Save Product
+                                    </button>
+                                </form>
                             </div>
                         </div>
-                        <button type="submit" class="btn btn-success btn-sm fw-bold w-100">
-                            <i class="bi bi-plus-square"></i> Save Product To Catalog
-                        </button>
-                    </form>
+                    </div>
 
                     <!-- PRODUCTS LIST TABLE -->
+                    <h6 class="fw-bold text-dark mb-2">All Catalog Products</h6>
                     <div class="table-responsive">
                         <table class="table table-hover align-middle small">
                             <thead class="table-light">
@@ -305,9 +246,11 @@
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- 3. USER MANAGEMENT DIRECTORY -->
-            <div class="card shadow border-0 mb-4">
+        <!-- SECTION 3: USERS DIRECTORY -->
+        <div class="tab-pane fade" id="users-sec" role="tabpanel">
+            <div class="card shadow border-0">
                 <div class="card-header bg-primary text-white p-3">
                     <h5 class="fw-bold mb-0"><i class="bi bi-people-fill"></i> Registered Customers & Users Directory</h5>
                 </div>
@@ -337,7 +280,7 @@
                                     <td>
                                         <form action="{{ url_for('admin.delete_user', user_id=u.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Is user ko delete karna chahte hain?');">
                                             <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2">
-                                                <i class="bi bi-trash"></i>
+                                                <i class="bi bi-trash"></i> Delete
                                             </button>
                                         </form>
                                     </td>
@@ -348,8 +291,144 @@
                     </div>
                 </div>
             </div>
-
         </div>
+
+        <!-- SECTION 4: OFFER BANNERS -->
+        <div class="tab-pane fade" id="banners-sec" role="tabpanel">
+            <div class="card shadow border-0">
+                <div class="card-header bg-primary text-white p-3">
+                    <h5 class="fw-bold mb-0"><i class="bi bi-megaphone"></i> Publish Offer Banners</h5>
+                </div>
+                <div class="card-body p-4">
+                    <form action="{{ url_for('admin.add_banner') }}" method="POST" enctype="multipart/form-data" class="mb-4 p-3 bg-light rounded border">
+                        <div class="row g-2">
+                            <div class="col-md-6 mb-2">
+                                <label class="form-label small fw-bold">Offer Title</label>
+                                <input type="text" name="title" class="form-control form-control-sm" placeholder="e.g. Ramadan Special Discount" required>
+                            </div>
+                            <div class="col-md-6 mb-2">
+                                <label class="form-label small fw-bold">Offer Subtext</label>
+                                <input type="text" name="offer_text" class="form-control form-control-sm" placeholder="e.g. Get 10% OFF on all items">
+                            </div>
+                            <div class="col-md-6 mb-2">
+                                <label class="form-label small fw-bold">Discount Percentage (%)</label>
+                                <input type="number" name="discount_percentage" class="form-control form-control-sm" placeholder="10" min="0" max="100" required>
+                            </div>
+                            <div class="col-md-6 mb-2">
+                                <label class="form-label small fw-bold">Banner Image File</label>
+                                <input type="file" name="banner_file" class="form-control form-control-sm">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-sm fw-bold mt-2">
+                            <i class="bi bi-plus-circle"></i> Create Offer Banner
+                        </button>
+                    </form>
+
+                    <!-- EXISTING BANNERS -->
+                    <h6 class="fw-bold text-dark mb-2">Active Banners</h6>
+                    <div class="row g-3">
+                        {% for b in banners %}
+                        <div class="col-md-4">
+                            <div class="border rounded p-3 bg-light">
+                                <h6 class="fw-bold text-primary mb-1">{{ b.title }}</h6>
+                                <p class="small text-muted mb-1">{{ b.offer_text }}</p>
+                                <span class="badge bg-danger mb-2">{{ b.discount_percentage }}% OFF</span>
+                                <form action="{{ url_for('admin.delete_banner', banner_id=b.id) }}" method="POST" onsubmit="return confirm('Is banner ko delete karna chahte hain?');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger w-100 py-0">Remove Banner</button>
+                                </form>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 5: CMS & STORE SETTINGS -->
+        <div class="tab-pane fade" id="cms-sec" role="tabpanel">
+            <div class="card shadow border-0">
+                <div class="card-header bg-success text-white p-3">
+                    <h5 class="fw-bold mb-0"><i class="bi bi-sliders"></i> Store Layout & CMS Branding</h5>
+                </div>
+                <div class="card-body p-4">
+                    <form action="{{ url_for('admin.update_settings') }}" method="POST" enctype="multipart/form-data">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">Store Title Name</label>
+                                <input type="text" name="store_title" class="form-control form-control-sm" placeholder="Ihsan Ul Haq & Sons General Store">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">Theme Primary Color</label>
+                                <input type="color" name="primary_color" class="form-control form-control-color w-100" value="#198754">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">Contact Phone Number</label>
+                                <input type="text" name="contact_phone" class="form-control form-control-sm" placeholder="+92 300 0000000">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">WhatsApp Support Number</label>
+                                <input type="text" name="whatsapp_no" class="form-control form-control-sm" placeholder="923000000000">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">Store Logo File</label>
+                                <input type="file" name="logo_file" class="form-control form-control-sm">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">Header Cover Image File</label>
+                                <input type="file" name="cover_file" class="form-control form-control-sm">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small fw-bold">About Us Section Content</label>
+                                <textarea name="about_text" class="form-control form-control-sm" rows="3" placeholder="Welcome to Ihsan Store..."></textarea>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-success btn-sm fw-bold px-4 mt-3">
+                            <i class="bi bi-save"></i> Save CMS Settings
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 6: HARD DISK BACKUP -->
+        <div class="tab-pane fade" id="backup-sec" role="tabpanel">
+            <div class="card shadow border-0 border-start border-danger border-4">
+                <div class="card-header bg-danger text-white p-3">
+                    <h5 class="fw-bold mb-0"><i class="bi bi-hdd-fill"></i> Laptop Hard Disk Backup & Restore</h5>
+                </div>
+                <div class="card-body p-4">
+                    <p class="text-muted small">
+                        Render par online free storage clean hone ya deployment overwrite hone se bachne ke liye daily apne Laptop mein offline backup save karein.
+                    </p>
+                    
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <div class="p-3 border rounded bg-light">
+                                <h6 class="fw-bold text-dark mb-2">1. Download Offline Backup</h6>
+                                <p class="small text-muted mb-3">Is button par click karke poori Database (.db file) Apne Laptop Hard Disk mein Download karein.</p>
+                                <a href="{{ url_for('admin.backup_database') }}" class="btn btn-danger btn-sm w-100 fw-bold shadow-sm">
+                                    <i class="bi bi-download"></i> Save Data To Laptop Hard Disk
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="p-3 border rounded bg-light">
+                                <h6 class="fw-bold text-dark mb-2">2. Restore From Laptop</h6>
+                                <p class="small text-muted mb-2">Agar data missing ho to apni pehle se saved (.db) file select karke restore karein.</p>
+                                <form action="{{ url_for('admin.restore_database') }}" method="POST" enctype="multipart/form-data">
+                                    <input type="file" name="backup_db_file" class="form-control form-control-sm mb-2" accept=".db" required>
+                                    <button type="submit" class="btn btn-outline-danger btn-sm w-100 fw-bold" onclick="return confirm('Kya aap purana backup data restore karna chahte hain?');">
+                                        <i class="bi bi-upload"></i> Restore Data
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
 </div>
 {% endblock %}
