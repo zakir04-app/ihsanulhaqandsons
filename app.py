@@ -8,10 +8,10 @@ from routes.admin import admin_bp
 from routes.customer import customer_bp
 
 # Network socket timeout to prevent server hanging on failed connections
-socket.setdefaulttimeout(10)
+socket.setdefaulttimeout(15)
 
 app = Flask(__name__)
-app.secret_key = os.environ.get('SECRET_KEY', 'super_secure_secret_key_ihsan_grocery')
+app.secret_key = os.environ.get('SECRET_KEY', 'ihsan_grocery_secret_key_2026')
 
 # --- SECURITY UPLOAD DIRECTORY SYSTEM ---
 UPLOAD_FOLDER = os.path.join('static', 'uploads')
@@ -19,27 +19,31 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # Max 16MB file size limit
 
 # --- CLEAN & ACCURATE MAIL CONFIGURATION ---
-# Clean env string in case extra spaces/quotes exist in Render config
 raw_server = os.environ.get('MAIL_SERVER', 'smtp.gmail.com').strip().replace("'", "").replace('"', '')
 app.config['MAIL_SERVER'] = raw_server if raw_server and not raw_server.isdigit() else 'smtp.gmail.com'
 
+# Port conversion safely
 try:
-    app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
-except ValueError:
-    app.config['MAIL_PORT'] = 587
+    app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 465))
+except (ValueError, TypeError):
+    app.config['MAIL_PORT'] = 465
 
-# Auto-align TLS and SSL based on Port to avoid SSL/TLS conflicts
+# Proper Boolean String parsing for Render Environment Variables
+raw_tls = os.environ.get('MAIL_USE_TLS', 'False').strip().lower()
+raw_ssl = os.environ.get('MAIL_USE_SSL', 'True').strip().lower()
+
+# Align SSL/TLS strictly based on port
 if app.config['MAIL_PORT'] == 465:
-    app.config['MAIL_USE_TLS'] = False
     app.config['MAIL_USE_SSL'] = True
+    app.config['MAIL_USE_TLS'] = False
 else:
-    app.config['MAIL_USE_TLS'] = True
-    app.config['MAIL_USE_SSL'] = False
+    app.config['MAIL_USE_SSL'] = (raw_ssl == 'true')
+    app.config['MAIL_USE_TLS'] = (raw_tls == 'true')
 
 app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME', 'zakir.ullah0004@gmail.com').strip()
 app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD', 'xjetasdhvhunlogy').strip()
 app.config['MAIL_DEFAULT_SENDER'] = ('Ihsan Ul Haq & Sons General Store', app.config['MAIL_USERNAME'])
-app.config['MAIL_TIMEOUT'] = 10
+app.config['MAIL_TIMEOUT'] = 15
 
 mail = Mail(app)
 app.extensions['mail'] = mail
@@ -57,7 +61,7 @@ def inject_global_site_data():
         cursor.execute("SELECT key, value FROM site_settings")
         settings = {r['key']: r['value'] for r in cursor.fetchall()}
         conn.close()
-    except Exception as e:
+    except Exception:
         settings = {}
     
     return dict(
