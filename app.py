@@ -12,12 +12,10 @@ socket.setdefaulttimeout(15)
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'ihsan_grocery_secret_key_2026')
 
-# --- SECURITY UPLOAD DIRECTORY SYSTEM ---
 UPLOAD_FOLDER = os.path.join('static', 'uploads')
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 
 
-# --- MAIL CONFIGURATION ---
 raw_server = os.environ.get('MAIL_SERVER', 'smtp-relay.brevo.com').strip().replace("'", "").replace('"', '')
 app.config['MAIL_SERVER'] = raw_server if raw_server and not raw_server.isdigit() else 'smtp-relay.brevo.com'
 
@@ -44,7 +42,6 @@ app.config['MAIL_TIMEOUT'] = 15
 mail = Mail(app)
 app.extensions['mail'] = mail
 
-# GLOBAL CONTEXT PROCESSOR: Injecting Store Theme, Contact Details & CMS Values
 @app.context_processor
 def inject_global_site_data():
     cart = session.get('cart', {})
@@ -63,6 +60,7 @@ def inject_global_site_data():
         cart_count=total_count,
         site_title=settings.get('store_title', 'Ihsan Grocery Shop'),
         site_cover=settings.get('cover_image', ''),
+        site_logo=settings.get('site_logo', ''),
         primary_color=settings.get('primary_color', '#198754'),
         contact_phone=settings.get('contact_phone', '+92 300 0000000'),
         contact_email=settings.get('contact_email', 'info@ihsangrocery.com'),

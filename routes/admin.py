@@ -1,4 +1,3 @@
-# routes/admin.py
 import os
 import csv
 import io
@@ -26,14 +25,11 @@ def send_order_email(recipient_email, username, order_id, status):
         "content-type": "application/json"
     }
     
-    subject = f"Order #{order_id} Update - {status}"
-    message_text = f"Assalam-o-Alaikum {username},\n\nApka Order #{order_id} ka status update hoker '{status}' ho chuka hai.\n\nIhsan Ul Haq & Sons General Store ki taraf se shukriya!"
-    
     payload = {
         "sender": {"name": "Ihsan Grocery Store", "email": "zakir.ullah0004@gmail.com"},
         "to": [{"email": recipient_email}],
-        "subject": subject,
-        "htmlContent": f"<h3>Assalam-o-Alaikum {username},</h3><p>Apke <b>Order #{order_id}</b> ka status change hoker: <span style='color:green; font-weight:bold;'>{status}</span> ho gaya hai.</p><p>Shukriya!</p>"
+        "subject": f"Order #{order_id} Update - {status}",
+        "htmlContent": f"<h3>Assalam-o-Alaikum {username},</h3><p>Apke <b>Order #{order_id}</b> ka status update hoker <span style='color:green; font-weight:bold;'>{status}</span> ho gaya hai.</p><p>Ihsan Ul Haq & Sons General Store ki taraf se shukriya!</p>"
     }
     
     try:
@@ -86,7 +82,7 @@ def dashboard():
             VALUES (?, ?, ?, ?, ?, ?)
         ''', (name, description, price, stock, image_url, category))
         conn.commit()
-        flash('Product dynamic properties ke sath catalog me list ho gaya!', 'success')
+        flash('Product dynamic properties ke sath list ho gaya!', 'success')
         return redirect(url_for('admin.dashboard'))
         
     cursor.execute("SELECT * FROM products ORDER BY id DESC")
@@ -128,6 +124,7 @@ def update_settings():
     about_text = request.form.get('about_text', '').strip()
     
     uploaded_cover = handle_image_upload('cover_file')
+    uploaded_logo = handle_image_upload('logo_file')
     
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -148,10 +145,12 @@ def update_settings():
             
     if uploaded_cover:
         cursor.execute("INSERT OR REPLACE INTO site_settings (key, value) VALUES ('cover_image', ?)", (uploaded_cover,))
+    if uploaded_logo:
+        cursor.execute("INSERT OR REPLACE INTO site_settings (key, value) VALUES ('site_logo', ?)", (uploaded_logo,))
         
     conn.commit()
     conn.close()
-    flash('Website Layout, Theme & Dynamic Content updated successfully!', 'success')
+    flash('Website Layout, Theme, Logo & Dynamic Content updated successfully!', 'success')
     return redirect(url_for('admin.dashboard'))
 
 @admin_bp.route('/order/status/<int:order_id>/<string:status>', methods=['POST'])
@@ -160,8 +159,6 @@ def update_order_status(order_id, status):
     
     conn = get_db_connection()
     cursor = conn.cursor()
-    
-    # Customer Details fetch kar rahe hain email ke liye
     cursor.execute('''
         SELECT users.email, users.username 
         FROM orders 
@@ -177,7 +174,7 @@ def update_order_status(order_id, status):
     if customer_info:
         send_order_email(customer_info['email'], customer_info['username'], order_id, status)
         
-    flash(f"Order #{order_id} status updated to {status} aur customer ko Email notification bhej diya gaya hai!", 'success')
+    flash(f"Order #{order_id} status updated to {status} aur Email notification bhej diya gaya hai!", 'success')
     return redirect(url_for('admin.dashboard'))
 
 @admin_bp.route('/user/edit/<int:user_id>', methods=['POST'])

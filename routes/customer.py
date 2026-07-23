@@ -9,25 +9,85 @@ def home():
     cursor = conn.cursor()
     
     category_filter = request.args.get('category')
+    banner_filter = request.args.get('banner_id')
     
-    # Banners Order
     cursor.execute("SELECT * FROM banners ORDER BY id DESC")
     banners = cursor.fetchall()
     
-    if category_filter:
-        cursor.execute("SELECT * FROM products WHERE category = ? ORDER BY id DESC", (category_filter,))
-    else:
-        cursor.execute("SELECT * FROM products ORDER BY id DESC")
-    products = cursor.fetchall()
+    # Products Fetching with Banner Discounts
+    query = '''
+        SELECT products.*, banners.discount_percentage 
+        FROM products 
+        LEFT JOIN banners ON products.banner_id = banners.id
+    '''
+    params = []
     
+    if banner_filter:
+        query += " WHERE products.banner_id = ? "
+        params.append(banner_filter)
+    elif category_filter:
+        query += " WHERE products.category = ? "
+        params.append(category_filter)
+        
+    query += " ORDER BY products.id DESC"
+    cursor.execute(query, params)
+    products_raw = cursor.fetchall()
+    
+    # Process Discount Prices
+    products = []
+    for p in products_raw:
+        item = dict(p)
+        if item['discount_percentage'] and item['discount_percentage'] > 0:
+            item['discounted_price'] = round(item['price'] * (1 - item['discount_percentage'] / 100), 2)
+        else:
+            item['discounted_price'] = None
+        products.append(item)
+    
+    # BEST SELLING PRODUCTS
+    cursor.execute('''
+        SELECT products.*, banners.discount_percentage, SUM(order_items.quantity) as total_sold
+        FROM order_items
+        JOIN products ON order_items.product_id = products.id
+        LEFT JOIN banners ON products.banner_id = banners.id
+        GROUP BY products.id
+        ORDER BY total_sold DESC
+        LIMIT 4
+    ''')
+    best_sellers_raw = cursor.fetchall()
+    best_sellers = []
+    for p in best_sellers_raw:
+        item = dict(p)
+        if item['discount_percentage'] and item['discount_percentage'] > 0:
+            item['discounted_price'] = round(item['price'] * (1 - item['discount_percentage'] / 100), 2)
+        else:
+            item['discounted_price'] = None
+        best_sellers.append(item)
+
+    # RECENT SALES PRODUCTS
+    cursor.execute('''
+        SELECT DISTINCT products.*, banners.discount_percentage, orders.id as order_id
+        FROM order_items
+        JOIN orders ON order_items.order_id = orders.id
+        JOIN products ON order_items.product_id = products.id
+        LEFT JOIN banners ON products.banner_id = banners.id
+        ORDER BY orders.id DESC
+        LIMIT 4
+    ''')
+    recent_sales_raw = cursor.fetchall()
+    recent_sales = []
+    for p in recent_sales_raw:
+        item = dict(p)
+        if item['discount_percentage'] and item['discount_percentage'] > 0:
+            item['discounted_price'] = round(item['price'] * (1 - item['discount_percentage'] / 100), 2)
+        else:
+            item['discounted_price'] = None
+        recent_sales.append(item)
+
     cursor.execute("SELECT DISTINCT category FROM products WHERE category IS NOT NULL")
     categories = [r['category'] for r in cursor.fetchall()]
     
-    cursor.execute("SELECT id, discount_percentage FROM banners")
-    banner_discounts = {b['id']: b['discount_percentage'] for b in cursor.fetchall()}
-    
     conn.close()
-    return render_template('index.html', products=products, categories=categories, banners=banners, banner_discounts=banner_discounts, selected_category=category_filter)
+    return render_template('index.html', products=products, categories=categories, banners=banners, best_sellers=best_sellers, recent_sales=recent_sales, selected_category=category_filter, selected_banner=banner_filter)
 
 @customer_bp.route('/about')
 def about():
