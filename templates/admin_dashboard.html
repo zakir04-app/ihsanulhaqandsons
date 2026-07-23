@@ -1,0 +1,254 @@
+<!-- templates/admin_dashboard.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <!-- Left Hand Side Side Controls Panel Column -->
+    <div class="col-md-4 mb-4">
+        <!-- GLOBAL CMS SETTINGS COMPONENT -->
+        <div class="card bg-dark text-white shadow border-0 p-3 mb-4">
+            <div class="card-body">
+                <h5 class="fw-bold text-warning mb-3"><i class="bi bi-sliders"></i> Store Layout Controls</h5>
+                <form action="{{ url_for('admin.update_settings') }}" method="POST" enctype="multipart/form-data">
+                    <div class="mb-2">
+                        <label class="form-label small text-white-50 mb-0">Dynamic Store Brand Name</label>
+                        <input type="text" name="store_title" class="form-control form-control-sm" value="{{ site_title }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small text-white-50 mb-0">Upload Main Layout Cover File</label>
+                        <input type="file" name="cover_file" class="form-control form-control-sm" accept="image/*">
+                    </div>
+                    <button type="submit" class="btn btn-warning btn-sm w-100 fw-bold">Apply Core Visual Changes</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Add New Product Form Component -->
+        <div class="card shadow border-0">
+            <div class="card-body p-4">
+                <h5 class="fw-bold text-success mb-3"><i class="bi bi-box-seam"></i> Add Single Product</h5>
+                <form action="{{ url_for('admin.dashboard') }}" method="POST" enctype="multipart/form-data">
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold mb-1">Product Name</label>
+                        <input type="text" name="name" class="form-control form-control-sm" required>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold mb-1">Select Category</label>
+                        <select name="category_select" class="form-select form-select-sm">
+                            <option value="General">General</option>
+                            {% for cat in categories %}
+                                <option value="{{ cat }}">{{ cat }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small text-danger fw-bold mb-1">OR New Category Name</label>
+                        <input type="text" name="category_custom" class="form-control form-control-sm" placeholder="e.g. Spices">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold mb-1">Upload Product Image</label>
+                        <input type="file" name="product_file" class="form-control form-control-sm" accept="image/*">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small text-muted mb-1">OR Image URL</label>
+                        <input type="url" name="image_url" class="form-control form-control-sm">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold mb-1">Description</label>
+                        <textarea name="description" class="form-control form-control-sm" rows="2"></textarea>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-bold mb-1">Price (PKR)</label>
+                            <input type="number" step="0.01" name="price" class="form-control form-control-sm" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-bold mb-1">Stock (Qty)</label>
+                            <input type="number" name="stock" class="form-control form-control-sm" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-success w-100 fw-bold btn-sm">Save Product</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- FIXED RE-INTEGRATED PROMOTIONAL OFFER BANNER CREATOR CARD -->
+        <div class="card shadow border-0 mt-4 border-info">
+            <div class="card-body p-4">
+                <h5 class="fw-bold text-info mb-3"><i class="bi bi-image"></i> Launch Offer Banner</h5>
+                <form action="{{ url_for('admin.add_banner') }}" method="POST" enctype="multipart/form-data">
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold mb-1">Banner Heading Title</label>
+                        <input type="text" name="title" class="form-control form-control-sm" required placeholder="e.g. Eid Mega Sale">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold mb-1">Offer Text / Subtitle</label>
+                        <input type="text" name="offer_text" class="form-control form-control-sm" placeholder="e.g. Limited Time Discount">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold mb-1">Discount Percentage (%)</label>
+                        <input type="number" name="discount_percentage" class="form-control form-control-sm" min="0" max="100" required>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold mb-1">Upload Banner Image File</label>
+                        <input type="file" name="banner_file" class="form-control form-control-sm" accept="image/*">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small text-muted mb-1">OR External Image URL</label>
+                        <input type="url" name="image_url" class="form-control form-control-sm" placeholder="https://...">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-success mb-1">Select Products for this Offer</label>
+                        <div class="border rounded p-2 bg-light" style="max-height: 120px; overflow-y: auto;">
+                            {% for product in products %}
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="offer_products" value="{{ product.id }}" id="prod_{{ product.id }}">
+                                    <label class="form-check-label small" for="prod_{{ product.id }}">{{ product.name }} (PKR {{ product.price }})</label>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-info btn-sm text-white w-100 fw-bold">Publish Offer Live</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- BULK UPLOAD CONTROLLER COMPONENT -->
+        <div class="card shadow border-0 mt-4 border-warning bg-light">
+            <div class="card-body p-4">
+                <h5 class="fw-bold text-dark mb-2"><i class="bi bi-file-earmark-spreadsheet-fill text-success"></i> Bulk Inventory Upload</h5>
+                <p class="small text-muted mb-3">Excel/CSV file ke zariye inventory synchronized karein.</p>
+                <a href="{{ url_for('admin.download_template') }}" class="btn btn-outline-dark btn-sm w-100 fw-bold mb-3 shadow-sm">
+                    <i class="bi bi-cloud-arrow-down-fill text-primary"></i> Download CSV Template
+                </a>
+                <form action="{{ url_for('admin.bulk_upload') }}" method="POST" enctype="multipart/form-data" class="border-top pt-2">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-success mb-1">Select Filled CSV File</label>
+                        <input type="file" name="csv_file" class="form-control form-control-sm" accept=".csv" required>
+                    </div>
+                    <button type="submit" class="btn btn-success btn-sm w-100 fw-bold">Upload Bulk Products</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Side Content Dataset Column -->
+    <div class="col-md-8">
+        <!-- Active Banners Panel List Controls -->
+        <div class="card shadow border-0 p-4 mb-4">
+            <h5 class="fw-bold text-info mb-3"><i class="bi bi-images"></i> Active Promotional Banners & Offer Controls</h5>
+            <div class="table-responsive" style="max-height: 250px; overflow-y: auto;">
+                <table class="table table-hover align-middle small">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Banner Details</th>
+                            <th>Off %</th>
+                            <th>Change Off %</th>
+                            <th style="text-align: center;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for banner in banners %}
+                        <tr>
+                            <td class="fw-bold">
+                                {{ banner.title }}
+                                <div class="text-muted small fw-normal">{{ banner.offer_text }}</div>
+                            </td>
+                            <td><span class="badge bg-danger">{{ banner.discount_percentage }}% Off</span></td>
+                            <td>
+                                <form action="{{ url_for('admin.edit_banner', banner_id=banner.id) }}" method="POST" class="d-flex gap-1">
+                                    <input type="number" name="discount_percentage" class="form-control form-control-sm px-1 text-center" min="0" max="100" value="{{ banner.discount_percentage }}" style="width: 55px;" required>
+                                    <button type="submit" class="btn btn-sm btn-outline-primary py-0 px-2 shadow-sm"><i class="bi bi-check-lg"></i></button>
+                                </form>
+                            </td>
+                            <td style="text-align: center;">
+                                <form action="{{ url_for('admin.delete_banner', banner_id=banner.id) }}" method="POST" onsubmit="return confirm('Khatam karna chahte hain?');">
+                                    <button type="submit" class="btn btn-sm btn-danger py-1 px-2"><i class="bi bi-trash3-fill"></i></button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Orders View Tracker Controls Grid -->
+        <div class="card shadow border-0 p-4 mb-4">
+            <h5 class="fw-bold text-dark mb-3"><i class="bi bi-receipt"></i> Customer Orders Tracking Control</h5>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle small">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Customer</th>
+                            <th>Amount</th>
+                            <th>Gateway</th>
+                            <th>Verification TRX ID</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in orders %}
+                        <tr>
+                            <td class="fw-bold">#{{ order.id }}</td>
+                            <td>{{ order.username }}<div class="text-muted small">{{ order.email }}</div></td>
+                            <td class="fw-bold text-success">PKR {{ order.total_price }}</td>
+                            <td><span class="badge bg-info text-dark">{{ order.payment_method }}</span></td>
+                            <td><mark class="fw-bold small text-danger">{{ order.transaction_id or 'N/A (COD)' }}</mark></td>
+                            <td>
+                                <span class="badge {% if order.status=='Pending' %}bg-warning text-dark{% elif order.status=='Dispatched' %}bg-primary{% else %}bg-success{% endif %}">
+                                    {{ order.status }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="d-flex gap-1">
+                                    <form action="{{ url_for('admin.update_order_status', order_id=order.id, status='Dispatched') }}" method="POST">
+                                        <button class="btn btn-xs btn-outline-primary py-0 px-1" style="font-size: 11px;">Dispatch</button>
+                                    </form>
+                                    <form action="{{ url_for('admin.update_order_status', order_id=order.id, status='Completed') }}" method="POST">
+                                        <button class="btn btn-xs btn-success py-0 px-1" style="font-size: 11px;">Complete</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Inventory List Viewer Table -->
+        <div class="card shadow border-0 p-4 mb-4">
+            <h4 class="fw-bold text-dark mb-4">Current Active Inventory</h4>
+            <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Thumbnail</th>
+                            <th>Details</th>
+                            <th>Category</th>
+                            <th>Price</th>
+                            <th>Stock</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for product in products %}
+                        <tr>
+                            <td>
+                                <img src="{{ product.image_url or '/static/logo.png' }}" class="rounded shadow-sm" style="width: 45px; height: 45px; object-fit: cover;" onerror="this.src='/static/logo.png'">
+                            </td>
+                            <td><div class="fw-bold text-success">{{ product.name }}</div></td>
+                            <td><span class="badge bg-secondary">{{ product.category }}</span></td>
+                            <td>PKR {{ product.price }}</td>
+                            <td>{{ product.stock }} pcs</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

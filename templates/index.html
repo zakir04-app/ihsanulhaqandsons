@@ -1,0 +1,69 @@
+<!-- templates/index.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Offers/Banners Display Hub -->
+{% if banners %}
+<div id="groceryOfferCarousel" class="carousel slide shadow rounded overflow-hidden mb-5 border-0" data-bs-ride="carousel">
+    <div class="carousel-inner">
+        {% for banner in banners %}
+        <div class="carousel-item {% if loop.first %}active{% endif %}" data-bs-interval="4000">
+            <div class="position-relative" style="height: 280px; background: url('{{ banner.image_url }}') center/cover no-repeat; background-color: #2b303a;">
+                <div class="position-absolute top-0 start-0 w-100 h-100" style="background: rgba(0,0,0,0.45);"></div>
+                <div class="position-absolute top-50 start-0 translate-middle-y text-white ps-5 ms-3">
+                    <span class="badge bg-warning text-dark fw-bold mb-2 text-uppercase tracking-wider">Mega Offer!</span>
+                    <h1 class="fw-extrabold display-5 mb-1">{{ banner.title }}</h1>
+                    <p class="lead text-white-50 fw-semibold">{{ banner.offer_text }}</p>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    <button class="carousel-control-prev" type="button" data-bs-target="#groceryOfferCarousel" data-bs-slide="prev">
+        <span class="carousel-control-prev-icon"></span>
+    </button>
+    <button class="carousel-control-next" type="button" data-bs-target="#groceryOfferCarousel" data-bs-slide="next">
+        <span class="carousel-control-next-icon"></span>
+    </button>
+</div>
+{% endif %}
+
+<!-- Shop Identity and Products Row -->
+<div class="d-flex align-items-center justify-content-between mb-4 mt-2">
+    <h3 class="fw-bold text-dark mb-0"><i class="bi bi-shop text-success"></i> Fresh Grocery Stock</h3>
+    <span class="text-muted small fw-semibold">Premium Supermarket Quality</span>
+</div>
+
+<div class="row row-cols-1 row-cols-md-4 g-4">
+    {% for product in products %}
+    <div class="col">
+        <div class="card h-100 border-0 shadow-sm rounded-3 overflow-hidden card-product-hover">
+            <div style="height: 180px; background-color: #f1f3f5;" class="d-flex align-items-center justify-content-center overflow-hidden position-relative">
+                {% if product.image_url %}
+                    <img src="{{ product.image_url }}" class="w-100 h-100 object-fit-cover" alt="{{ product.name }}">
+                {% else %}
+                    <i class="bi bi-box2 text-muted fs-1"></i>
+                {% endif %}
+                <span class="position-absolute top-0 end-0 bg-success text-white px-2 py-1 m-2 small rounded fw-bold">Stock: {{ product.stock }}</span>
+            </div>
+            <div class="card-body p-3 d-flex flex-column justify-content-between">
+                <div>
+                    <h5 class="card-title fw-bold text-dark mb-1 fs-6">{{ product.name }}</h5>
+                    <p class="text-muted small mb-3 text-truncate-2">{{ product.description or 'Fresh imported grocery inventory token item.' }}</p>
+                </div>
+                <div class="d-flex align-items-center justify-content-between mt-2">
+                    <span class="fw-bold fs-5 text-success">PKR {{ product.price }}</span>
+                    <form action="/cart/add/{{ product.id }}" method="POST" class="m-0">
+                        <button type="submit" class="btn btn-success btn-sm px-3 fw-bold rounded-pill shadow-sm"><i class="bi bi-plus-lg"></i> Add</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-12 text-center py-5">
+        <p class="text-muted lead">Abhi tak koi items upload nahi kiye gaye hain.</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

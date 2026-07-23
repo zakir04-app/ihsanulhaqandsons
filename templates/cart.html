@@ -1,0 +1,70 @@
+<!-- templates/cart.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-9">
+        <div class="card shadow border-0 rounded-3 p-4">
+            <h3 class="fw-bold text-success mb-4"><i class="bi bi-cart3"></i> Aapki Shopping Trolley</h3>
+            
+            {% if items and items|length > 0 %}
+                <div class="table-responsive">
+                    <table class="table align-middle table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Product Item</th>
+                                <th>Price</th>
+                                <th style="text-align: center; width: 180px;">Quantity Adjustment</th>
+                                <th style="text-align: right;">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in items %}
+                            <tr>
+                                <td class="fw-bold">{{ item.name }}</td>
+                                <td>PKR {{ item.price }}</td>
+                                <td style="text-align: center;">
+                                    <div class="d-flex justify-content-center align-items-center gap-2">
+                                        <!-- Decrease Quantity Button mapped to correct adjust_cart endpoint -->
+                                        <form action="{{ url_for('customer.adjust_cart', product_id=item.id, action='decrease') }}" method="POST" class="d-inline">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2 fw-bold">-</button>
+                                        </form>
+                                        
+                                        <span class="badge bg-light text-dark border fs-6 px-3">{{ item.qty }}</span>
+                                        
+                                        <!-- Increase Quantity Button mapped to correct adjust_cart endpoint -->
+                                        <form action="{{ url_for('customer.adjust_cart', product_id=item.id, action='increase') }}" method="POST" class="d-inline">
+                                            <button type="submit" class="btn btn-sm btn-outline-success py-0 px-2 fw-bold">+</button>
+                                        </form>
+                                        
+                                        <!-- Remove Item Action mapped to correct adjust_cart endpoint -->
+                                        <form action="{{ url_for('customer.adjust_cart', product_id=item.id, action='remove') }}" method="POST" class="d-inline ms-2">
+                                            <button type="submit" class="btn btn-sm btn-link text-danger p-0"><i class="bi bi-trash"></i></button>
+                                        </form>
+                                    </div>
+                                </td>
+                                <td style="text-align: right;" class="fw-bold text-success">PKR {{ item.total }}</td>
+                            </tr>
+                            {% endfor %}
+                            <tr class="table-group-divider">
+                                <td colspan="3" style="text-align: right;" class="fw-bold fs-5 pt-3">Grand Total Bill:</td>
+                                <td style="text-align: right;" class="fw-bold text-danger fs-5 pt-3">PKR {{ total }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Checkout Redirect Layer -->
+                <div class="d-flex justify-content-end mt-4">
+                    <a href="{{ url_for('customer.checkout') }}" class="btn btn-success btn-lg fw-bold shadow-sm px-5">Proceed to Checkout <i class="bi bi-arrow-right"></i></a>
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <p class="text-muted mb-4 fs-5">Aapki trolley abhi khali hai.</p>
+                    <a href="{{ url_for('customer.home') }}" class="btn btn-success fw-bold px-4 rounded-pill">Browse Grocery Items</a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

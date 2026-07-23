@@ -1,0 +1,32 @@
+<!-- templates/register.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-5">
+        <div class="card shadow border-0 mt-4">
+            <div class="card-body p-4">
+                <h3 class="card-title fw-bold text-center text-success mb-4">Create Account</h3>
+                <form action="/auth/register" method="POST">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Username</label>
+                        <input type="text" name="username" class="form-control" required placeholder="Apna naam likhein">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Email Address</label>
+                        <input type="email" name="email" class="form-control" required placeholder="name@example.com">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Password</label>
+                        <input type="password" name="password" class="form-control" required placeholder="Strong password chunein">
+                    </div>
+                    <button type="submit" class="btn btn-success w-100 py-2 fw-bold mt-2">Sign Up</button>
+                </form>
+                <div class="text-center mt-3">
+                    <p class="mb-0 text-muted">Pehle se account hai? <a href="/auth/login" class="text-success fw-bold text-decoration-none">Login karein</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
