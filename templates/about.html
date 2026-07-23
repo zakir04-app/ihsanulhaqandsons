@@ -4,14 +4,16 @@
 <div class="card shadow border-0 p-5 rounded-4 bg-white">
     <div class="row align-items-center">
         <div class="col-md-7">
-            <h2 class="fw-bold text-success mb-3">About Ihsan Ul Haq & Sons</h2>
-            <p class="lead text-muted">Hamari grocery shop pichle kee saalo se customer ko high-quality aur fresh items pure hygienic controls ke sath provide kar rahi hai.</p>
-            <p class="text-dark">Hum har item par behtareen value deliver karte hain taake aapka kitchen aur ghar hamesha fresh stock se bhara rahe. Hamara e-commerce panel digital billing aur strict quality protocols ke mutabiq chalaya jata hai.</p>
+            <h2 class="fw-bold text-success mb-3">About {{ site_title }}</h2>
+            <p class="lead text-dark">{{ about_text or 'Welcome to Ihsan Ul Haq & Sons General Store.' }}</p>
         </div>
         <div class="col-md-5 text-center">
-            <!-- Dynamic Store Image Showcase Container -->
             <div class="p-4 bg-light rounded-3 border d-flex align-items-center justify-content-center" style="min-height: 250px;">
-                <i class="bi bi-building fs-1 text-success"></i>
+                {% if site_cover %}
+                    <img src="{{ site_cover }}" class="img-fluid rounded shadow-sm" style="max-height: 220px; object-fit: cover;" alt="Store Cover">
+                {% else %}
+                    <i class="bi bi-building fs-1 text-success"></i>
+                {% endif %}
             </div>
         </div>
     </div>

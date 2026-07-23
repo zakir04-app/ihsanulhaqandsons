@@ -1,6 +1,9 @@
+# routes/admin.py
 import os
 import csv
 import io
+import sys
+import requests
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, current_app, Response
 from werkzeug.utils import secure_filename
 from database.db_handler import get_db_connection
@@ -11,6 +14,34 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 
 def is_admin():
     return session.get('role') == 'admin'
+
+def send_order_email(recipient_email, username, order_id, status):
+    """Sends Order Status Update Email to Customer via Brevo HTTPS API"""
+    api_key = os.environ.get('BREVO_API_KEY', 'FyExk7nvDBS4POHM')
+    url = "https://api.brevo.com/v3/smtp/email"
+    
+    headers = {
+        "accept": "application/json",
+        "api-key": api_key,
+        "content-type": "application/json"
+    }
+    
+    subject = f"Order #{order_id} Update - {status}"
+    message_text = f"Assalam-o-Alaikum {username},\n\nApka Order #{order_id} ka status update hoker '{status}' ho chuka hai.\n\nIhsan Ul Haq & Sons General Store ki taraf se shukriya!"
+    
+    payload = {
+        "sender": {"name": "Ihsan Grocery Store", "email": "zakir.ullah0004@gmail.com"},
+        "to": [{"email": recipient_email}],
+        "subject": subject,
+        "htmlContent": f"<h3>Assalam-o-Alaikum {username},</h3><p>Apke <b>Order #{order_id}</b> ka status change hoker: <span style='color:green; font-weight:bold;'>{status}</span> ho gaya hai.</p><p>Shukriya!</p>"
+    }
+    
+    try:
+        response = requests.post(url, json=payload, headers=headers, timeout=10)
+        return response.status_code in [200, 201, 202]
+    except Exception as e:
+        print(f"--> ORDER EMAIL EXCEPTION: {str(e)}", file=sys.stderr)
+        return False
 
 def handle_image_upload(file_input_name):
     if file_input_name not in request.files:
@@ -78,14 +109,12 @@ def dashboard():
     cursor.execute("SELECT COUNT(*) as count FROM orders WHERE status = 'Pending'")
     total_orders = cursor.fetchone()['count']
 
-    # --- FETCH USER DATA FOR ADMIN MANAGEMENT ---
     cursor.execute("SELECT id, username, email, role, is_verified FROM users ORDER BY id DESC")
     users = cursor.fetchall()
     
     conn.close()
     return render_template('admin_dashboard.html', products=products, categories=categories, banners=banners, orders=orders, total_orders=total_orders, users=users)
 
-# --- ADVANCED CMS & STORE LAYOUT SETTINGS ---
 @admin_bp.route('/settings/update', methods=['POST'])
 def update_settings():
     if not is_admin(): return redirect(url_for('auth.login'))
@@ -122,14 +151,38 @@ def update_settings():
         
     conn.commit()
     conn.close()
-    flash('Website Layout, Theme Color & Dynamic Content successfully updated!', 'success')
+    flash('Website Layout, Theme & Dynamic Content updated successfully!', 'success')
     return redirect(url_for('admin.dashboard'))
 
-# --- USER MANAGEMENT ROUTES ---
+@admin_bp.route('/order/status/<int:order_id>/<string:status>', methods=['POST'])
+def update_order_status(order_id, status):
+    if not is_admin(): return redirect(url_for('auth.login'))
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Customer Details fetch kar rahe hain email ke liye
+    cursor.execute('''
+        SELECT users.email, users.username 
+        FROM orders 
+        JOIN users ON orders.user_id = users.id 
+        WHERE orders.id = ?
+    ''', (order_id,))
+    customer_info = cursor.fetchone()
+    
+    cursor.execute("UPDATE orders SET status = ? WHERE id = ?", (status, order_id))
+    conn.commit()
+    conn.close()
+    
+    if customer_info:
+        send_order_email(customer_info['email'], customer_info['username'], order_id, status)
+        
+    flash(f"Order #{order_id} status updated to {status} aur customer ko Email notification bhej diya gaya hai!", 'success')
+    return redirect(url_for('admin.dashboard'))
+
 @admin_bp.route('/user/edit/<int:user_id>', methods=['POST'])
 def edit_user(user_id):
     if not is_admin(): return redirect(url_for('auth.login'))
-    
     username = request.form.get('username').strip()
     email = request.form.get('email').strip()
     role = request.form.get('role').strip()
@@ -139,21 +192,18 @@ def edit_user(user_id):
     cursor.execute("UPDATE users SET username = ?, email = ?, role = ? WHERE id = ?", (username, email, role, user_id))
     conn.commit()
     conn.close()
-    
-    flash(f"User #{user_id} account details successfully update ho gayi hain!", 'success')
+    flash(f"User #{user_id} account details updated!", 'success')
     return redirect(url_for('admin.dashboard'))
 
 @admin_bp.route('/user/delete/<int:user_id>', methods=['POST'])
 def delete_user(user_id):
     if not is_admin(): return redirect(url_for('auth.login'))
-    
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("DELETE FROM users WHERE id = ?", (user_id,))
     conn.commit()
     conn.close()
-    
-    flash("User account successfully delete kar diya gaya hai!", 'warning')
+    flash("User account deleted!", 'warning')
     return redirect(url_for('admin.dashboard'))
 
 @admin_bp.route('/banner/add', methods=['POST'])
@@ -178,7 +228,7 @@ def add_banner():
             
     conn.commit()
     conn.close()
-    flash('Offer Banner added & Published!', 'success')
+    flash('Offer Banner Published!', 'success')
     return redirect(url_for('admin.dashboard'))
 
 @admin_bp.route('/banner/edit/<int:banner_id>', methods=['POST'])
@@ -202,21 +252,18 @@ def delete_banner(banner_id):
     cursor.execute("DELETE FROM banners WHERE id = ?", (banner_id,))
     conn.commit()
     conn.close()
-    flash('Banner removed successfully!', 'info')
+    flash('Banner removed!', 'info')
     return redirect(url_for('admin.dashboard'))
 
 @admin_bp.route('/bulk-template', methods=['GET'])
 def download_template():
     if not is_admin(): return redirect(url_for('auth.login'))
-    
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow(['name', 'description', 'price', 'stock', 'image_url', 'category'])
-    writer.writerow(['Sufi Sun Oil 1L', 'Pure cooking oil batch A', '520.00', '100', 'https://example.com/oil.jpg', 'Cooking Essentials'])
-    writer.writerow(['Tapal Danedar 430g', 'Premium leaf strong tea', '680.00', '50', '', 'Beverages'])
-    
+    writer.writerow(['Sufi Sun Oil 1L', 'Pure cooking oil', '520.00', '100', '', 'Essentials'])
     response = Response(output.getvalue(), mimetype='text/csv')
-    response.headers['Content-Disposition'] = 'attachment; filename=sample_products_template.csv'
+    response.headers['Content-Disposition'] = 'attachment; filename=sample_template.csv'
     return response
 
 @admin_bp.route('/bulk-upload', methods=['POST'])
@@ -224,10 +271,10 @@ def bulk_upload():
     if not is_admin(): return redirect(url_for('auth.login'))
     file = request.files.get('csv_file')
     if not file or not file.filename.endswith('.csv'):
-        flash('Meharbani karke sirf (.csv) extension waali file select karein.', 'error')
+        flash('Sirf CSV file upload karein.', 'error')
         return redirect(url_for('admin.dashboard'))
         
-    filepath = os.path.join('C:\\Windows\\Temp' if os.name == 'nt' else '/tmp', secure_filename(file.filename))
+    filepath = os.path.join('/tmp', secure_filename(file.filename))
     file.save(filepath)
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -236,30 +283,17 @@ def bulk_upload():
             reader = csv.DictReader(f)
             count = 0
             for row in reader:
-                cat = row.get('category', 'General').strip()
-                if not cat: cat = 'General'
+                cat = row.get('category', 'General').strip() or 'General'
                 cursor.execute('''
                     INSERT INTO products (name, description, price, stock, image_url, category)
                     VALUES (?, ?, ?, ?, ?, ?)
                 ''', (row['name'].strip(), row.get('description', '').strip(), float(row['price']), int(row['stock']), row.get('image_url', '').strip(), cat))
                 count += 1
         conn.commit()
-        flash(f'Inventory synchronized! {count} products added via Bulk Upload.', 'success')
+        flash(f'{count} products added successfully!', 'success')
     except Exception as e:
-        print("--> CSV PARSE EXCEPTION:", str(e))
-        flash(f'CSV Format Parsing Error: {str(e)}.', 'error')
+        flash(f'CSV Error: {str(e)}', 'error')
     finally:
         conn.close()
         if os.path.exists(filepath): os.remove(filepath)
-    return redirect(url_for('admin.dashboard'))
-
-@admin_bp.route('/order/status/<int:order_id>/<string:status>', methods=['POST'])
-def update_order_status(order_id, status):
-    if not is_admin(): return redirect(url_for('auth.login'))
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("UPDATE orders SET status = ? WHERE id = ?", (status, order_id))
-    conn.commit()
-    conn.close()
-    flash(f"Order #{order_id} status updated to {status}!", 'success')
     return redirect(url_for('admin.dashboard'))

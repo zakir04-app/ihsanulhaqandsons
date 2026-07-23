@@ -8,26 +8,26 @@
             <div class="row mt-4">
                 <div class="col-md-6 mb-3">
                     <div class="p-3 border rounded bg-light">
-                        <h6 class="fw-bold text-muted mb-1"><i class="bi bi-envelope-at text-success"></i> Official Email</h6>
-                        <p class="mb-0 text-dark fw-semibold">zakir.ullah0004@gmail.com</p>
+                        <h6 class="fw-bold text-muted mb-1"><i class="bi bi-telephone text-success"></i> Phone Number</h6>
+                        <p class="mb-0 text-dark fw-semibold">{{ contact_phone or '+92 300 0000000' }}</p>
                     </div>
                 </div>
                 <div class="col-md-6 mb-3">
                     <div class="p-3 border rounded bg-light">
-                        <h6 class="fw-bold text-muted mb-1"><i class="bi bi-whatsapp text-success"></i> WhatsApp Control</h6>
-                        <p class="mb-0 text-dark fw-semibold">+971 50 XXXXXXX</p>
+                        <h6 class="fw-bold text-muted mb-1"><i class="bi bi-envelope-at text-success"></i> Official Email</h6>
+                        <p class="mb-0 text-dark fw-semibold">{{ contact_email or 'info@ihsanstore.com' }}</p>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <div class="p-3 border rounded bg-light">
+                        <h6 class="fw-bold text-muted mb-1"><i class="bi bi-whatsapp text-success"></i> WhatsApp Support</h6>
+                        <p class="mb-0 text-dark fw-semibold">{{ whatsapp_no or '+92 300 0000000' }}</p>
                     </div>
                 </div>
                 <div class="col-md-6 mb-3">
                     <div class="p-3 border rounded bg-light">
                         <h6 class="fw-bold text-muted mb-1"><i class="bi bi-geo-alt text-success"></i> Store Address</h6>
-                        <p class="mb-0 text-dark small">Al Rahaba Facility Base, Dubai, UAE / Pakistan.</p>
-                    </div>
-                </div>
-                <div class="col-md-6 mb-3">
-                    <div class="p-3 border rounded bg-light">
-                        <h6 class="fw-bold text-muted mb-1"><i class="bi bi-clock text-success"></i> Operating Hours</h6>
-                        <p class="mb-0 text-dark small">08:00 AM - 11:00 PM (Everyday)</p>
+                        <p class="mb-0 text-dark small">{{ contact_address or 'Main Bazar' }}</p>
                     </div>
                 </div>
             </div>
