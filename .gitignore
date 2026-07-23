@@ -1,3 +1,2 @@
-# SQLite Database file ko Git tracking se remove karne ke liye
-*.db
 database.db
+*.db
