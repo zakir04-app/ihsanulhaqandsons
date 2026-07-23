@@ -18,19 +18,19 @@ UPLOAD_FOLDER = os.path.join('static', 'uploads')
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # Max 16MB file size limit
 
-# --- CLEAN & ACCURATE MAIL CONFIGURATION ---
-raw_server = os.environ.get('MAIL_SERVER', 'smtp.gmail.com').strip().replace("'", "").replace('"', '')
-app.config['MAIL_SERVER'] = raw_server if raw_server and not raw_server.isdigit() else 'smtp.gmail.com'
+# --- CLEAN & ACCURATE MAIL CONFIGURATION (BREVO SMTP) ---
+raw_server = os.environ.get('MAIL_SERVER', 'smtp-relay.brevo.com').strip().replace("'", "").replace('"', '')
+app.config['MAIL_SERVER'] = raw_server if raw_server and not raw_server.isdigit() else 'smtp-relay.brevo.com'
 
-# Port conversion safely
+# Port conversion safely (Brevo uses 587)
 try:
-    app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 465))
+    app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
 except (ValueError, TypeError):
-    app.config['MAIL_PORT'] = 465
+    app.config['MAIL_PORT'] = 587
 
 # Proper Boolean String parsing for Render Environment Variables
-raw_tls = os.environ.get('MAIL_USE_TLS', 'False').strip().lower()
-raw_ssl = os.environ.get('MAIL_USE_SSL', 'True').strip().lower()
+raw_tls = os.environ.get('MAIL_USE_TLS', 'True').strip().lower()
+raw_ssl = os.environ.get('MAIL_USE_SSL', 'False').strip().lower()
 
 # Align SSL/TLS strictly based on port
 if app.config['MAIL_PORT'] == 465:
@@ -40,9 +40,12 @@ else:
     app.config['MAIL_USE_SSL'] = (raw_ssl == 'true')
     app.config['MAIL_USE_TLS'] = (raw_tls == 'true')
 
-app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME', 'zakir.ullah0004@gmail.com').strip()
-app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD', 'xjetasdhvhunlogy').strip()
-app.config['MAIL_DEFAULT_SENDER'] = ('Ihsan Ul Haq & Sons General Store', app.config['MAIL_USERNAME'])
+# Brevo Credentials
+app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME', 'b305f2001@smtp-brevo.com').strip()
+app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD', 'FyExk7nvDBS4POHM').strip()
+
+# Sender email must be valid (using your primary email as sender display)
+app.config['MAIL_DEFAULT_SENDER'] = ('Ihsan Ul Haq & Sons General Store', 'zakir.ullah0004@gmail.com')
 app.config['MAIL_TIMEOUT'] = 15
 
 mail = Mail(app)
