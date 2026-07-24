@@ -1,21 +1,139 @@
-<!-- templates/about.html -->
 {% extends "base.html" %}
+
 {% block content %}
-<div class="card shadow border-0 p-5 rounded-4 bg-white">
-    <div class="row align-items-center">
-        <div class="col-md-7">
-            <h2 class="fw-bold text-success mb-3">About {{ site_title }}</h2>
-            <p class="lead text-dark">{{ about_text or 'Welcome to Ihsan Ul Haq & Sons General Store.' }}</p>
+<div class="container py-5">
+    
+    <!-- HERO TITLE HEADER -->
+    <div class="text-center mb-5">
+        <span class="badge bg-success px-3 py-2 rounded-pill fw-bold text-uppercase mb-2">Since 1985</span>
+        <h1 class="fw-bold text-success display-5">About Ihsan Ul Haq & Sons</h1>
+        <p class="lead text-muted max-w-700 mx-auto">A legacy built on hard work, honesty, perseverance, and family values.</p>
+        <div class="mt-3">
+            <span class="border-bottom border-success border-3 d-inline-block" style="width: 80px;"></span>
         </div>
-        <div class="col-md-5 text-center">
-            <div class="p-4 bg-light rounded-3 border d-flex align-items-center justify-content-center" style="min-height: 250px;">
-                {% if site_cover %}
-                    <img src="{{ site_cover }}" class="img-fluid rounded shadow-sm" style="max-height: 220px; object-fit: cover;" alt="Store Cover">
-                {% else %}
-                    <i class="bi bi-building fs-1 text-success"></i>
-                {% endif %}
+    </div>
+
+    <div class="row g-4 align-items-stretch mb-5">
+        <!-- OUR STORY CARD -->
+        <div class="col-lg-7">
+            <div class="card h-100 border-0 shadow-sm p-4 rounded-4 bg-white">
+                <div class="card-body p-2">
+                    <h3 class="fw-bold text-dark mb-3"><i class="bi bi-book-half text-success me-2"></i> Our Journey & Heritage</h3>
+                    
+                    <p class="text-secondary lh-lg mb-3">
+                        <strong>Ihsan Ul Haq & Sons General Supermarket</strong> is more than just a grocery store—it’s the story of dedication, resilience, and family values.
+                    </p>
+
+                    <p class="text-secondary lh-lg mb-3">
+                        Our journey began in <strong>1985</strong>, when our respected father, <strong>Mr. Ihsan Ul Haq</strong>, started a small grocery shop. In the early years, the business operated in partnership and faced many challenges. Through honesty and an unwavering commitment to serving the community, he continued moving forward despite every obstacle.
+                    </p>
+
+                    <p class="text-secondary lh-lg mb-0">
+                        In <strong>1990</strong>, he took a bold step and established his own independent grocery store. What started as a small neighborhood shop has grown into a trusted, well-established supermarket, proudly serving customers with quality products and exceptional service under one roof.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- CMS DYNAMIC TEXT / IMAGE HIGHLIGHT CARD -->
+        <div class="col-lg-5">
+            <div class="card h-100 border-0 shadow-sm p-4 rounded-4 bg-success text-white d-flex flex-column justify-content-between position-relative overflow-hidden">
+                <div class="position-absolute top-0 end-0 opacity-10 p-3">
+                    <i class="bi bi-shop display-1"></i>
+                </div>
+                <div class="card-body p-2 position-relative z-1">
+                    <h4 class="fw-bold mb-3"><i class="bi bi-award-fill me-2"></i> Our Promise To You</h4>
+                    
+                    {% if settings and settings.get('about_text') %}
+                        <!-- Renders Admin CMS text with formatting support -->
+                        <div class="lh-lg small text-white-50">
+                            {{ settings.get('about_text') | safe }}
+                        </div>
+                    {% else %}
+                        <p class="lh-lg text-white-50 mb-3">
+                            Today, we offer a wide range of grocery essentials, household products, beverages, personal care items, and fresh food—all at fair prices.
+                        </p>
+                        <ul class="list-unstyled lh-lg text-white-50 mb-0">
+                            <li><i class="bi bi-check-circle-fill text-warning me-2"></i> Guaranteed Fresh & Genuine Items</li>
+                            <li><i class="bi bi-check-circle-fill text-warning me-2"></i> Fair Pricing for Every Household</li>
+                            <li><i class="bi bi-check-circle-fill text-warning me-2"></i> Family-like Customer Care</li>
+                        </ul>
+                    {% endif %}
+                </div>
+                <div class="border-top border-light border-opacity-25 pt-3 mt-3">
+                    <small class="fw-bold text-warning"><i class="bi bi-heart-fill me-1"></i> Serving Families Since 1985</small>
+                </div>
             </div>
         </div>
     </div>
+
+    <!-- MISSION & VISION GRID -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm p-4 rounded-4 bg-light h-100 border-start border-success border-4">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-success text-white rounded-circle p-3 me-3 d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                            <i class="bi bi-bullseye fs-4"></i>
+                        </div>
+                        <h4 class="fw-bold text-dark mb-0">Our Mission</h4>
+                    </div>
+                    <p class="text-muted mb-0 lh-lg">
+                        To provide high-quality grocery products at fair prices while delivering friendly service and creating lasting, trusted relationships with our customers.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm p-4 rounded-4 bg-light h-100 border-start border-primary border-4">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-primary text-white rounded-circle p-3 me-3 d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                            <i class="bi bi-eye-fill fs-4"></i>
+                        </div>
+                        <h4 class="fw-bold text-dark mb-0">Our Vision</h4>
+                    </div>
+                    <p class="text-muted mb-0 lh-lg">
+                        To become one of the most trusted and customer-focused supermarkets, known for quality, integrity, and excellence, while continuing the legacy built by our founder.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FOUNDER'S QUOTE BOX (MULTILINGUAL DISPLAY) -->
+    <div class="card border-0 shadow-sm rounded-4 bg-white p-4 p-md-5 border-top border-warning border-4">
+        <div class="card-body text-center">
+            <i class="bi bi-quote text-success display-3 mb-2 d-block"></i>
+            <h4 class="fw-bold text-dark mb-4">Founder's Guiding Principles</h4>
+            
+            <!-- PASHTO QUOTE -->
+            <div class="bg-light p-3 rounded-3 mb-3 border">
+                <p class="fs-5 text-dark fw-bold mb-0" dir="rtl" style="font-family: 'Noto Nastaliq Urdu', 'Traditional Arabic', serif; line-height: 2.2;">
+                    "خه هم خپلو کوششونو مه پریږده، که تر اوسه کامیاب شوی نه یی، او که کامیاب نه شوی، نو ډیر سبقونه به زده کړې چی هغه به ستا راتلونکی نسل هم ګته واخلي."
+                </p>
+            </div>
+
+            <!-- ENGLISH TRANSLATION -->
+            <div class="mb-3 px-md-4">
+                <p class="text-muted fst-italic fs-6 mb-0">
+                    "Never give up on your efforts. Even if you have not succeeded yet, and even if success doesn't come immediately, you will learn valuable lessons that will benefit not only you but also the generations that come after you."
+                </p>
+            </div>
+
+            <!-- URDU TRANSLATION -->
+            <div class="bg-light p-3 rounded-3 border">
+                <p class="fs-5 text-dark mb-0" dir="rtl" style="font-family: 'Noto Nastaliq Urdu', 'Urdu Typesetting', serif; line-height: 2.2;">
+                    "اپنی کوشش کبھی مت چھوڑو۔ اگر ابھی تک کامیاب نہیں ہوئے، اور اگر کامیابی نہ بھی ملے، تو بھی آپ بہت سے ایسے سبق سیکھیں گے جن سے نہ صرف آپ بلکہ آپ کی آنے والی نسلیں بھی فائدہ اٹھائیں گی۔"
+                </p>
+            </div>
+
+            <div class="mt-4 pt-2 border-top">
+                <h6 class="fw-bold text-success mb-0">— MR. IHSAN UL HAQ & SONS —</h6>
+            </div>
+        </div>
+    </div>
+
 </div>
 {% endblock %}

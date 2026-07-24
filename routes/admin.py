@@ -23,6 +23,8 @@ def send_status_notification_email(recipient_email, username, order_id, status):
         "content-type": "application/json"
     }
     
+    base_domain = "https://ihsanulhaqandsons.onrender.com"
+    
     if status == 'Dispatched':
         subject = f"🚚 Order #{order_id} Dispatched - Delivering Soon!"
         content_html = f"""
@@ -50,13 +52,13 @@ def send_status_notification_email(recipient_email, username, order_id, status):
             
             <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; text-align: center; border: 1px solid #eee; margin: 20px 0;">
                 <h4 style="margin-top: 0; color: #333;">Aapka Experience Kaisa Raha?</h4>
-                <p style="color: #666; font-size: 14px;">Please niche diye gaye Rating Stars par click karke feedback dein:</p>
-                <div style="font-size: 24px; letter-spacing: 5px;">
-                    <a href="#" style="text-decoration: none;">⭐</a>
-                    <a href="#" style="text-decoration: none;">⭐</a>
-                    <a href="#" style="text-decoration: none;">⭐</a>
-                    <a href="#" style="text-decoration: none;">⭐</a>
-                    <a href="#" style="text-decoration: none;">⭐</a>
+                <p style="color: #666; font-size: 14px;">Please niche kisi bhi Star par click karke Rating submit karein:</p>
+                <div style="font-size: 28px; letter-spacing: 10px;">
+                    <a href="{base_domain}/review/{order_id}?rating=1" style="text-decoration: none;">⭐</a>
+                    <a href="{base_domain}/review/{order_id}?rating=2" style="text-decoration: none;">⭐</a>
+                    <a href="{base_domain}/review/{order_id}?rating=3" style="text-decoration: none;">⭐</a>
+                    <a href="{base_domain}/review/{order_id}?rating=4" style="text-decoration: none;">⭐</a>
+                    <a href="{base_domain}/review/{order_id}?rating=5" style="text-decoration: none;">⭐</a>
                 </div>
             </div>
             <hr>
@@ -78,6 +80,45 @@ def send_status_notification_email(recipient_email, username, order_id, status):
         return response.status_code in [200, 201, 202]
     except Exception as e:
         print(f"--> STATUS EMAIL EXCEPTION: {str(e)}", file=sys.stderr)
+        return False
+
+def send_direct_reply_email(customer_email, customer_name, order_id, admin_reply_text):
+    api_key = os.environ.get('BREVO_API_KEY', '')
+    url = "https://api.brevo.com/v3/smtp/email"
+    
+    headers = {
+        "accept": "application/json",
+        "api-key": api_key,
+        "content-type": "application/json"
+    }
+    
+    html = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 20px; border-radius: 8px;">
+        <h3 style="color: #198754; text-align: center;">Ihsan Ul Haq & Sons General Store</h3>
+        <hr>
+        <p>Assalam-o-Alaikum <b>{customer_name}</b>,</p>
+        <p>Aapke <b>Order #{order_id}</b> ke feedback par Ihsan Store Admin Team ka Jawab:</p>
+        
+        <div style="background-color: #e8f5e9; padding: 15px; border-radius: 5px; border-left: 4px solid #198754; font-size: 15px; font-weight: bold; color: #0f5132;">
+            "{admin_reply_text}"
+        </div>
+        <hr>
+        <p style="font-size: 12px; color: #777; text-align: center;">Hum se khareedari karne ka shukriya!</p>
+    </div>
+    """
+    
+    payload = {
+        "sender": {"name": "Ihsan Store Admin", "email": "zakir.ullah0004@gmail.com"},
+        "to": [{"email": customer_email}],
+        "subject": f"Response to Your Feedback - Order #{order_id}",
+        "htmlContent": html
+    }
+    
+    try:
+        response = requests.post(url, json=payload, headers=headers, timeout=10)
+        return response.status_code in [200, 201, 202]
+    except Exception as e:
+        print(f"--> ADMIN REPLY EMAIL ERROR: {str(e)}", file=sys.stderr)
         return False
 
 def handle_image_upload(file_input_name):
@@ -165,7 +206,6 @@ def dashboard():
         o['order_items_list'] = cursor.fetchall()
         orders.append(o)
     
-    # Live Badge Notification Counters
     cursor.execute("SELECT COUNT(*) as count FROM orders WHERE status = 'Placed Order'")
     total_orders = cursor.fetchone()['count']
 
@@ -178,6 +218,10 @@ def dashboard():
     cursor.execute("SELECT * FROM site_settings")
     settings_rows = cursor.fetchall()
     site_settings = {row['key']: row['value'] for row in settings_rows}
+
+    # Fetch Customer Reviews
+    cursor.execute("SELECT * FROM reviews ORDER BY id DESC")
+    reviews = cursor.fetchall()
     
     conn.close()
     return render_template(
@@ -189,8 +233,42 @@ def dashboard():
         total_orders=total_orders, 
         low_stock_count=low_stock_count,
         users=users, 
-        settings=site_settings
+        settings=site_settings,
+        reviews=reviews
     )
+
+# REVIEW STATUS TOGGLE (APPROVE / HIDE)
+@admin_bp.route('/review/status/<int:review_id>/<string:status>', methods=['POST'])
+def toggle_review_status(review_id, status):
+    if not is_admin(): return redirect(url_for('auth.login'))
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE reviews SET status = ? WHERE id = ?", (status, review_id))
+    conn.commit()
+    conn.close()
+    flash(f"Review status updated to {status}!", "success")
+    return redirect(url_for('admin.dashboard'))
+
+# ADMIN DIRECT REPLY TO REVIEW
+@admin_bp.route('/review/reply/<int:review_id>', methods=['POST'])
+def reply_to_review(review_id):
+    if not is_admin(): return redirect(url_for('auth.login'))
+    
+    reply_text = request.form.get('admin_reply', '').strip()
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("SELECT * FROM reviews WHERE id = ?", (review_id,))
+    review = cursor.fetchone()
+    
+    if review:
+        cursor.execute("UPDATE reviews SET admin_reply = ? WHERE id = ?", (reply_text, review_id))
+        conn.commit()
+        send_direct_reply_email(review['customer_email'], review['customer_name'], review['order_id'], reply_text)
+        flash("Reply customer ko email ho gaya hai aur dashboard par save ho gaya hai!", "success")
+        
+    conn.close()
+    return redirect(url_for('admin.dashboard'))
 
 @admin_bp.route('/product/edit/<int:product_id>', methods=['POST'])
 def edit_product(product_id):

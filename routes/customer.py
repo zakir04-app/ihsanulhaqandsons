@@ -24,7 +24,6 @@ def generate_pdf_invoice_bytes(order_id, full_name, username, phone, address, ci
     styles = getSampleStyleSheet()
     title_style = ParagraphStyle('TitleStyle', parent=styles['Heading1'], fontSize=18, textColor=colors.HexColor('#198754'), alignment=1)
     normal_style = styles['Normal']
-    bold_style = ParagraphStyle('BoldStyle', parent=styles['Normal'], fontName='Helvetica-Bold')
     
     story.append(Paragraph("Ihsan Ul Haq & Sons General Store", title_style))
     story.append(Paragraph("OFFICIAL ORDER INVOICE", ParagraphStyle('SubTitle', parent=styles['Heading2'], fontSize=12, alignment=1)))
@@ -250,7 +249,13 @@ def home():
 
 @customer_bp.route('/about')
 def about():
-    return render_template('about.html')
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM site_settings")
+    settings_rows = cursor.fetchall()
+    site_settings = {row['key']: row['value'] for row in settings_rows}
+    conn.close()
+    return render_template('about.html', settings=site_settings)
 
 @customer_bp.route('/contact')
 def contact():
@@ -402,14 +407,11 @@ def checkout():
             user_info = cursor.fetchone()
             
             if user_info:
-                # 1. Generate PDF Invoice
                 pdf_bytes = generate_pdf_invoice_bytes(order_id, full_name, user_info['username'], phone_number, address, city, payment_method, trx_id, cart_items, grand_total)
                 
-                # 2. Customer Placed Order Notification with PDF Attachment
                 cust_html = generate_placed_order_html(user_info['username'], full_name, phone_number, address, city, order_id, cart_items, grand_total, payment_method, trx_id)
                 send_email_via_brevo(user_info['email'], f"Order Placed Successfully #{order_id} - Ihsan Store", cust_html, pdf_bytes, f"Invoice_Order_{order_id}.pdf")
                 
-                # 3. Admin Alert Email
                 admin_html = f"<h2>New Order #{order_id} Received!</h2><p>Customer: {full_name} ({phone_number})<br>Total Amount: PKR {grand_total:.2f}</p>"
                 send_email_via_brevo(ADMIN_NOTIFICATION_EMAIL, f"NEW ORDER #{order_id} - Call {phone_number}", admin_html, pdf_bytes, f"Admin_Invoice_{order_id}.pdf")
             
@@ -425,3 +427,60 @@ def checkout():
             
     conn.close()
     return render_template('checkout.html', cart_items=cart_items, grand_total=grand_total)
+
+# CUSTOMER REVIEW & RATING SUBMISSION ROUTE
+@customer_bp.route('/review/<int:order_id>', methods=['GET', 'POST'])
+def review_order(order_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+        SELECT orders.*, users.email, users.username 
+        FROM orders 
+        LEFT JOIN users ON orders.user_id = users.id 
+        WHERE orders.id = ?
+    ''', (order_id,))
+    order = cursor.fetchone()
+    
+    if not order:
+        conn.close()
+        flash("Order ID nahi mila.", "error")
+        return redirect(url_for('customer.home'))
+        
+    pre_rating = request.args.get('rating', 5, type=int)
+    
+    if request.method == 'POST':
+        rating = int(request.form.get('rating', 5))
+        comment = request.form.get('comment', '').strip()
+        customer_name = order['full_name'] or order['username']
+        customer_email = order['email']
+        
+        cursor.execute('''
+            INSERT INTO reviews (order_id, user_id, customer_name, customer_email, rating, comment, status)
+            VALUES (?, ?, ?, ?, ?, ?, 'pending')
+        ''', (order_id, order['user_id'], customer_name, customer_email, rating, comment))
+        conn.commit()
+        conn.close()
+        
+        # Auto-Reply Email in Roman Urdu
+        auto_reply_html = f"""
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 20px; border-radius: 8px;">
+            <h3 style="color: #198754; text-align: center;">Ihsan Ul Haq & Sons General Store</h3>
+            <hr>
+            <p>Assalam-o-Alaikum <b>{customer_name}</b>,</p>
+            <p>Hum ne aapka <b>Order #{order_id}</b> ka feedback aur <b>{rating} Stars Rating</b> receive kar liya hai. Ihsan Store ko aapka feedback dene ka behad shukriya!</p>
+            
+            <div style="background-color: #f8f9fa; padding: 12px; border-left: 4px solid #198754; font-size: 13px; color: #555;">
+                <b>Note:</b> Yeh ek <i>Auto-Generated Email</i> hai, is mail ka jawab na dein. Hamari team aapka feedback review karegi aur agar zaroorat hui to aap se rabta karegi.
+            </div>
+            <hr>
+            <p style="font-size: 11px; color: #888; text-align: center;">Ihsan Store - Quality Grocery Delivered with Trust.</p>
+        </div>
+        """
+        send_email_via_brevo(customer_email, f"Feedback Received - Order #{order_id}", auto_reply_html)
+        
+        flash("Shukriya! Aapka feedback aur rating submit ho chuka hai.", "success")
+        return redirect(url_for('customer.home'))
+        
+    conn.close()
+    return render_template('review.html', order=order, pre_rating=pre_rating)

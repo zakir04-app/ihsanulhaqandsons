@@ -13,7 +13,7 @@ def init_db():
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    # Products Table
+    # 1. Products Table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS products (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -22,12 +22,12 @@ def init_db():
             price REAL NOT NULL,
             stock INTEGER NOT NULL,
             image_url TEXT,
-            category TEXT,
+            category TEXT DEFAULT 'General',
             banner_id INTEGER
         )
     ''')
     
-    # Users Table with OTP support
+    # 2. Users Table with OTP support
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -53,7 +53,7 @@ def init_db():
     if 'otp_code' not in user_columns:
         cursor.execute("ALTER TABLE users ADD COLUMN otp_code TEXT")
 
-    # Orders Table with Address and Phone
+    # 3. Orders Table with Address and Phone
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS orders (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -61,7 +61,7 @@ def init_db():
             full_name TEXT,
             phone_number TEXT,
             address TEXT,
-            city TEXT,
+            city TEXT DEFAULT 'Lahore',
             total_price REAL NOT NULL,
             payment_method TEXT NOT NULL,
             transaction_id TEXT,
@@ -83,7 +83,7 @@ def init_db():
     if 'city' not in order_columns:
         cursor.execute("ALTER TABLE orders ADD COLUMN city TEXT")
 
-    # Order Items Table
+    # 4. Order Items Table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS order_items (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -96,7 +96,7 @@ def init_db():
         )
     ''')
 
-    # Banners Table
+    # 5. Banners Table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS banners (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -107,11 +107,28 @@ def init_db():
         )
     ''')
 
-    # Site Settings Table
+    # 6. Site Settings Table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS site_settings (
             key TEXT PRIMARY KEY,
             value TEXT
+        )
+    ''')
+
+    # 7. Reviews & Ratings Table (New Feature Integrated)
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS reviews (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            order_id INTEGER NOT NULL,
+            user_id INTEGER,
+            customer_name TEXT,
+            customer_email TEXT,
+            rating INTEGER NOT NULL,
+            comment TEXT,
+            status TEXT DEFAULT 'pending',
+            admin_reply TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (order_id) REFERENCES orders (id)
         )
     ''')
     
