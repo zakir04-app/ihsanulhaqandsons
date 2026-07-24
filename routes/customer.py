@@ -95,7 +95,7 @@ def home():
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    category_filter = request.args.get('category')
+    category_filter = request.args.get('category', '').strip()
     banner_filter = request.args.get('banner_id')
     
     cursor.execute("SELECT * FROM banners ORDER BY id DESC")
@@ -111,8 +111,8 @@ def home():
     if banner_filter:
         query += " WHERE products.banner_id = ? "
         params.append(banner_filter)
-    elif category_filter:
-        query += " WHERE products.category = ? "
+    elif category_filter and category_filter != 'ALL':
+        query += " WHERE TRIM(products.category) = ? "
         params.append(category_filter)
         
     query += " ORDER BY products.id DESC"
@@ -128,7 +128,8 @@ def home():
             item['discounted_price'] = None
         products.append(item)
 
-    cursor.execute("SELECT DISTINCT category FROM products WHERE category IS NOT NULL")
+    # Dynamic fetch of all distinct categories
+    cursor.execute("SELECT DISTINCT TRIM(category) as category FROM products WHERE category IS NOT NULL AND TRIM(category) != ''")
     categories = [r['category'] for r in cursor.fetchall()]
     
     conn.close()
@@ -152,7 +153,6 @@ def add_to_cart(product_id):
     flash('Item trolley mein add ho gaya.', 'success')
     return redirect(request.referrer or url_for('customer.home'))
 
-# ADDED MISSING ROUTE FOR ADJUSTING CART ITEM QUANTITIES (+ / - / DELETE)
 @customer_bp.route('/cart/adjust/<int:product_id>/<string:action>', methods=['POST'])
 def adjust_cart(product_id, action):
     cart = session.get('cart', {})

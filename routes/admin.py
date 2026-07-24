@@ -92,23 +92,24 @@ def dashboard():
         fallback_url = request.form.get('image_url', '').strip()
         image_url = uploaded_img if uploaded_img else fallback_url
         
-        selected_category = request.form.get('category_select')
+        selected_category = request.form.get('category_select', '').strip()
         custom_category = request.form.get('category_custom', '').strip()
         category = custom_category if custom_category else selected_category
-        if not category: category = "General"
+        if not category: 
+            category = "General"
             
         cursor.execute('''
             INSERT INTO products (name, description, price, stock, image_url, category)
             VALUES (?, ?, ?, ?, ?, ?)
         ''', (name, description, price, stock, image_url, category))
         conn.commit()
-        flash('Product dynamic catalog me list ho gaya!', 'success')
+        flash(f'Product catalog mein category "{category}" ke sath add ho gaya!', 'success')
         return redirect(url_for('admin.dashboard'))
         
     cursor.execute("SELECT * FROM products ORDER BY id DESC")
     products = cursor.fetchall()
     
-    cursor.execute("SELECT DISTINCT category FROM products WHERE category IS NOT NULL AND category != ''")
+    cursor.execute("SELECT DISTINCT TRIM(category) as category FROM products WHERE category IS NOT NULL AND TRIM(category) != ''")
     categories = [r['category'] for r in cursor.fetchall()]
     
     cursor.execute("SELECT * FROM banners ORDER BY id DESC")
@@ -154,7 +155,6 @@ def dashboard():
     conn.close()
     return render_template('admin_dashboard.html', products=products, categories=categories, banners=banners, orders=orders, total_orders=total_orders, users=users, settings=site_settings)
 
-# WORKING PRODUCT EDIT ROUTE
 @admin_bp.route('/product/edit/<int:product_id>', methods=['POST'])
 def edit_product(product_id):
     if not is_admin(): 
@@ -176,7 +176,7 @@ def edit_product(product_id):
     price = float(request.form.get('price', product['price']))
     stock = int(request.form.get('stock', product['stock']))
     
-    selected_category = request.form.get('category_select')
+    selected_category = request.form.get('category_select', '').strip()
     custom_category = request.form.get('category_custom', '').strip()
     category = custom_category if custom_category else selected_category
     if not category: 
@@ -194,10 +194,9 @@ def edit_product(product_id):
     conn.commit()
     conn.close()
     
-    flash(f'Product #{product_id} ({name}) updated successfully!', 'success')
+    flash(f'Product #{product_id} ({name}) successfully update ho gaya!', 'success')
     return redirect(url_for('admin.dashboard'))
 
-# WORKING PRODUCT DELETE ROUTE
 @admin_bp.route('/product/delete/<int:product_id>', methods=['POST'])
 def delete_product(product_id):
     if not is_admin(): 
@@ -209,7 +208,7 @@ def delete_product(product_id):
     conn.commit()
     conn.close()
     
-    flash(f'Product #{product_id} deleted from catalog.', 'warning')
+    flash(f'Product #{product_id} catalog se delete ho gaya.', 'warning')
     return redirect(url_for('admin.dashboard'))
 
 @admin_bp.route('/banner/add', methods=['POST'])
