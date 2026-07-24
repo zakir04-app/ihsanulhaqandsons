@@ -3,7 +3,7 @@
 {% block content %}
 <div class="container-fluid py-4">
     
-    <!-- HEADER -->
+    <!-- HEADER WITH NOTIFICATION BADGES -->
     <div class="d-flex justify-content-between align-items-center mb-4 bg-white p-3 rounded-3 shadow-sm border">
         <div>
             <h3 class="fw-bold text-success mb-0">
@@ -11,9 +11,24 @@
             </h3>
             <small class="text-muted">Ihsan Ul Haq & Sons General Store Management</small>
         </div>
-        <span class="badge bg-danger fs-6 px-3 py-2 rounded-pill">
-            <i class="bi bi-bell-fill me-1"></i> Pending Orders: {{ total_orders }}
-        </span>
+        
+        <div class="d-flex gap-2">
+            <!-- PENDING ORDERS NOTIFICATION BADGE -->
+            <button class="btn btn-outline-danger position-relative fw-bold px-3 py-2 rounded-pill" type="button">
+                <i class="bi bi-receipt-cutoff fs-5 me-1"></i> Pending Orders
+                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger fs-6">
+                    {{ total_orders }}
+                </span>
+            </button>
+
+            <!-- LOW STOCK NOTIFICATION BADGE -->
+            <button class="btn btn-outline-warning text-dark position-relative fw-bold px-3 py-2 rounded-pill" type="button">
+                <i class="bi bi-exclamation-triangle-fill fs-5 me-1 text-warning"></i> Low Stock Items
+                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning text-dark fs-6">
+                    {{ low_stock_count }}
+                </span>
+            </button>
+        </div>
     </div>
 
     <!-- FLASH MESSAGES -->
@@ -131,10 +146,14 @@
 
                                 <div class="d-flex gap-2">
                                     <form action="{{ url_for('admin.update_order_status', order_id=order.id, status='Dispatched') }}" method="POST">
-                                        <button type="submit" class="btn btn-sm btn-primary fw-bold">Set Dispatched</button>
+                                        <button type="submit" class="btn btn-sm btn-primary fw-bold">
+                                            <i class="bi bi-truck me-1"></i> Set Dispatched & Email Alert
+                                        </button>
                                     </form>
                                     <form action="{{ url_for('admin.update_order_status', order_id=order.id, status='Delivered') }}" method="POST">
-                                        <button type="submit" class="btn btn-sm btn-success fw-bold">Set Delivered</button>
+                                        <button type="submit" class="btn btn-sm btn-success fw-bold">
+                                            <i class="bi bi-check-circle me-1"></i> Set Delivered & Feedback Email
+                                        </button>
                                     </form>
                                 </div>
                             </div>
@@ -180,9 +199,9 @@
                                 </select>
                             </div>
                             <div class="col-md-4 mb-2">
-                                <label class="form-label small fw-bold">Banner Image Upload or Direct URL Link</label>
+                                <label class="form-label small fw-bold">Banner Image Upload or Web Link</label>
                                 <input type="file" name="banner_file" class="form-control form-control-sm mb-1">
-                                <input type="text" name="image_url" class="form-control form-control-sm" placeholder="Or paste image web link (https://...)">
+                                <input type="text" name="image_url" class="form-control form-control-sm" placeholder="Or paste link https://...">
                             </div>
                             <div class="col-12 mb-2">
                                 <label class="form-label small fw-bold">Or Select Specific Individual Products (Hold Ctrl to select multiple)</label>
@@ -234,7 +253,7 @@
             </div>
         </div>
 
-        <!-- TAB 3: INVENTORY CATALOG WITH FIXED IMAGE UPLOAD FORM -->
+        <!-- TAB 3: INVENTORY CATALOG WITH DYNAMIC CATEGORY CREATOR -->
         <div class="tab-pane fade" id="inventory-sec" role="tabpanel">
             <div class="card shadow border-0">
                 <div class="card-header bg-success text-white p-3 d-flex justify-content-between align-items-center">
@@ -261,7 +280,6 @@
                         <div class="col-md-6">
                             <div class="p-3 bg-light rounded border h-100">
                                 <h6 class="fw-bold text-success mb-2">Add Single New Product</h6>
-                                <!-- ENCTYPE ADDED FOR MULTIPART UPLOADS -->
                                 <form action="{{ url_for('admin.dashboard') }}" method="POST" enctype="multipart/form-data">
                                     <div class="row g-2">
                                         <div class="col-8">
@@ -273,16 +291,21 @@
                                         <div class="col-6">
                                             <input type="number" name="stock" class="form-control form-control-sm" placeholder="Stock Qty" required>
                                         </div>
+                                        
+                                        <!-- SELECT EXISTING OR TYPE NEW CATEGORY -->
                                         <div class="col-6">
-                                            <select name="category_select" class="form-select form-select-sm">
-                                                <option value="">Category...</option>
+                                            <select name="category_select" class="form-select form-select-sm mb-1">
+                                                <option value="">Select Existing Category...</option>
                                                 {% for cat in categories %}
                                                     <option value="{{ cat }}">{{ cat }}</option>
                                                 {% endfor %}
                                             </select>
                                         </div>
                                         <div class="col-12">
-                                            <label class="form-label small text-muted mb-0">Upload File or Paste Web Image URL</label>
+                                            <input type="text" name="category_custom" class="form-control form-control-sm" placeholder="➕ Or type New Category name here to create new">
+                                        </div>
+
+                                        <div class="col-12">
                                             <input type="file" name="product_file" class="form-control form-control-sm mb-1">
                                             <input type="text" name="image_url" class="form-control form-control-sm" placeholder="Or paste Image Link e.g. https://images.unsplash.com/...">
                                         </div>
@@ -326,7 +349,7 @@
                                     <td class="text-success fw-bold">PKR {{ "%.2f"|format(p.price) }}</td>
                                     <td>
                                         {% if p.stock < 10 %}
-                                            <span class="badge bg-danger">{{ p.stock }} (Low)</span>
+                                            <span class="badge bg-danger"><i class="bi bi-exclamation-circle-fill me-1"></i>{{ p.stock }} (Low Stock)</span>
                                         {% else %}
                                             <span class="badge bg-success">{{ p.stock }}</span>
                                         {% endif %}
@@ -350,7 +373,7 @@
                         </table>
                     </div>
 
-                    <!-- MODALS RENDERED OUTSIDE TABLE FOR GUARANTEED JS & DOM TARGETING -->
+                    <!-- MODALS RENDERED OUTSIDE TABLE -->
                     {% for p in products %}
                     <div class="modal fade" id="editModal_{{ p.id }}" tabindex="-1" aria-labelledby="editModalLabel_{{ p.id }}" aria-hidden="true">
                         <div class="modal-dialog modal-dialog-centered">
@@ -383,17 +406,17 @@
                                                         <option value="{{ cat }}" {% if p.category == cat %}selected{% endif %}>{{ cat }}</option>
                                                     {% endfor %}
                                                 </select>
-                                                <input type="text" name="category_custom" class="form-control form-control-sm" placeholder="Or type new category name">
+                                                <input type="text" name="category_custom" class="form-control form-control-sm" placeholder="➕ Or type new category name">
                                             </div>
                                             <div class="col-12">
                                                 <label class="form-label small fw-bold mb-1">Description</label>
                                                 <textarea name="description" class="form-control form-control-sm" rows="2">{{ p.description or '' }}</textarea>
                                             </div>
                                             <div class="col-12">
-                                                <label class="form-label small fw-bold mb-1">Change Image File or Paste Link</label>
+                                                <label class="form-label small fw-bold mb-1">Change Image File or Web Link</label>
                                                 <input type="file" name="product_file" class="form-control form-control-sm mb-1">
                                                 <input type="text" name="image_url" class="form-control form-control-sm" value="{{ p.image_url or '' }}" placeholder="Image Link (https://...)">
-                                                <small class="text-muted d-block mt-1">Nayi file select na karne par purani image link active rahegi.</small>
+                                                <small class="text-muted d-block mt-1">Nayi file select na karne par purani image active rahegi.</small>
                                             </div>
                                         </div>
                                     </div>

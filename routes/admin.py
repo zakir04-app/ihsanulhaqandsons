@@ -13,7 +13,7 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 def is_admin():
     return session.get('role') == 'admin'
 
-def send_status_email(recipient_email, username, order_id, status):
+def send_status_notification_email(recipient_email, username, order_id, status):
     api_key = os.environ.get('BREVO_API_KEY', '')
     url = "https://api.brevo.com/v3/smtp/email"
     
@@ -23,33 +23,54 @@ def send_status_email(recipient_email, username, order_id, status):
         "content-type": "application/json"
     }
     
-    status_colors = {
-        'Placed Order': '#ffc107',
-        'Dispatched': '#0d6efd',
-        'Delivered': '#198754'
-    }
-    color = status_colors.get(status, '#198754')
-    
-    html = f"""
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 20px; border-radius: 8px;">
-        <h2 style="color: #198754; text-align: center;">Ihsan Ul Haq & Sons General Store</h2>
-        <hr>
-        <h3>Assalam-o-Alaikum {username},</h3>
-        <p>Aapke <b>Order #{order_id}</b> ka status update ho chuka hai:</p>
-        <p style="font-size: 18px; text-align: center; padding: 10px; background-color: {color}; color: white; border-radius: 5px; font-weight: bold;">
-            {status}
-        </p>
-        <p>Aapke order ki delivery hamare standard schedule ke mutabiq jari hai.</p>
-        <hr>
-        <p style="font-size: 12px; color: #777; text-align: center;">Shukriya! Ihsan Store Team</p>
-    </div>
-    """
-    
+    if status == 'Dispatched':
+        subject = f"🚚 Order #{order_id} Dispatched - Delivering Soon!"
+        content_html = f"""
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 20px; border-radius: 8px;">
+            <h2 style="color: #0d6efd; text-align: center;">Ihsan Ul Haq & Sons General Store</h2>
+            <hr>
+            <h3>Assalam-o-Alaikum {username},</h3>
+            <p style="font-size: 16px;">Aapka <b>Order #{order_id}</b> humne <b>Dispatched</b> kar diya hai!</p>
+            <div style="background-color: #cff4fc; color: #055160; padding: 15px; border-radius: 5px; border-left: 4px solid #0dcaf0;">
+                <p style="margin: 0;"><b>🚪 Next Step - Doorstep Delivery:</b> Meharbani karke apne order ka intizar kijye. Delivery rider jald hi aapke diye gaye address par pohochne wala hai.</p>
+            </div>
+            <p>Agar aapne COD (Cash on Delivery) chuna tha to rider ke liye cash ready rakhein.</p>
+            <hr>
+            <p style="font-size: 12px; color: #777; text-align: center;">Shukriya! Ihsan Store Team</p>
+        </div>
+        """
+    elif status == 'Delivered':
+        subject = f"🎉 Order #{order_id} Delivered - Thank You!"
+        content_html = f"""
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 20px; border-radius: 8px;">
+            <h2 style="color: #198754; text-align: center;">Ihsan Ul Haq & Sons General Store</h2>
+            <hr>
+            <h3>Assalam-o-Alaikum {username},</h3>
+            <p style="font-size: 16px;">Aapka <b>Order #{order_id} Mukamal (Delivered)</b> ho chuka hai! Ihsan Store se khareedari karne ka behad shukriya.</p>
+            
+            <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; text-align: center; border: 1px solid #eee; margin: 20px 0;">
+                <h4 style="margin-top: 0; color: #333;">Aapka Experience Kaisa Raha?</h4>
+                <p style="color: #666; font-size: 14px;">Please niche diye gaye Rating Stars par click karke feedback dein:</p>
+                <div style="font-size: 24px; letter-spacing: 5px;">
+                    <a href="#" style="text-decoration: none;">⭐</a>
+                    <a href="#" style="text-decoration: none;">⭐</a>
+                    <a href="#" style="text-decoration: none;">⭐</a>
+                    <a href="#" style="text-decoration: none;">⭐</a>
+                    <a href="#" style="text-decoration: none;">⭐</a>
+                </div>
+            </div>
+            <hr>
+            <p style="font-size: 12px; color: #777; text-align: center;">Ihsan Store - Quality Grocery Delivered With Trust.</p>
+        </div>
+        """
+    else:
+        return False
+        
     payload = {
         "sender": {"name": "Ihsan Grocery Store", "email": "zakir.ullah0004@gmail.com"},
         "to": [{"email": recipient_email}],
-        "subject": f"Order #{order_id} Status Update: {status}",
-        "htmlContent": html
+        "subject": subject,
+        "htmlContent": content_html
     }
     
     try:
@@ -69,10 +90,7 @@ def handle_image_upload(file_input_name):
             filename = secure_filename(file.filename)
             unique_name = f"upload_{os.urandom(4).hex()}_{filename}"
             upload_folder = current_app.config.get('UPLOAD_FOLDER', os.path.join(current_app.root_path, 'static', 'uploads'))
-            
-            # Ensure upload folder exists on disk
             os.makedirs(upload_folder, exist_ok=True)
-            
             save_path = os.path.join(upload_folder, unique_name)
             file.save(save_path)
             return f"/static/uploads/{unique_name}"
@@ -147,8 +165,12 @@ def dashboard():
         o['order_items_list'] = cursor.fetchall()
         orders.append(o)
     
+    # Live Badge Notification Counters
     cursor.execute("SELECT COUNT(*) as count FROM orders WHERE status = 'Placed Order'")
     total_orders = cursor.fetchone()['count']
+
+    cursor.execute("SELECT COUNT(*) as count FROM products WHERE stock < 10")
+    low_stock_count = cursor.fetchone()['count']
 
     cursor.execute("SELECT id, username, email, role FROM users ORDER BY id DESC")
     users = cursor.fetchall()
@@ -158,12 +180,21 @@ def dashboard():
     site_settings = {row['key']: row['value'] for row in settings_rows}
     
     conn.close()
-    return render_template('admin_dashboard.html', products=products, categories=categories, banners=banners, orders=orders, total_orders=total_orders, users=users, settings=site_settings)
+    return render_template(
+        'admin_dashboard.html', 
+        products=products, 
+        categories=categories, 
+        banners=banners, 
+        orders=orders, 
+        total_orders=total_orders, 
+        low_stock_count=low_stock_count,
+        users=users, 
+        settings=site_settings
+    )
 
 @admin_bp.route('/product/edit/<int:product_id>', methods=['POST'])
 def edit_product(product_id):
-    if not is_admin(): 
-        return redirect(url_for('auth.login'))
+    if not is_admin(): return redirect(url_for('auth.login'))
     
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -188,7 +219,8 @@ def edit_product(product_id):
         category = product['category'] or "General"
     
     uploaded_img = handle_image_upload('product_file')
-    image_url = uploaded_img if uploaded_img else product['image_url']
+    fallback_url = request.form.get('image_url', '').strip()
+    image_url = uploaded_img if uploaded_img else (fallback_url if fallback_url else product['image_url'])
     
     cursor.execute('''
         UPDATE products 
@@ -198,21 +230,17 @@ def edit_product(product_id):
     
     conn.commit()
     conn.close()
-    
     flash(f'Product #{product_id} ({name}) successfully update ho gaya!', 'success')
     return redirect(url_for('admin.dashboard'))
 
 @admin_bp.route('/product/delete/<int:product_id>', methods=['POST'])
 def delete_product(product_id):
-    if not is_admin(): 
-        return redirect(url_for('auth.login'))
-        
+    if not is_admin(): return redirect(url_for('auth.login'))
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("DELETE FROM products WHERE id = ?", (product_id,))
     conn.commit()
     conn.close()
-    
     flash(f'Product #{product_id} catalog se delete ho gaya.', 'warning')
     return redirect(url_for('admin.dashboard'))
 
@@ -330,9 +358,9 @@ def update_order_status(order_id, status):
     conn.close()
     
     if customer_info and customer_info['email'] != 'N/A':
-        send_status_email(customer_info['email'], customer_info['username'], order_id, status)
+        send_status_notification_email(customer_info['email'], customer_info['username'], order_id, status)
         
-    flash(f"Order #{order_id} status updated to {status}!", 'success')
+    flash(f"Order #{order_id} status updated to {status} & Notification sent!", 'success')
     return redirect(url_for('admin.dashboard'))
 
 @admin_bp.route('/user/delete/<int:user_id>', methods=['POST'])
