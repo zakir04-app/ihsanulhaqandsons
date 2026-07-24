@@ -8,24 +8,6 @@ customer_bp = Blueprint('customer', __name__)
 
 ADMIN_NOTIFICATION_EMAIL = "zakir.ullah0004@gmail.com"
 
-def get_site_settings_dict():
-    """Helper function to fetch site settings key-value pairs"""
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM site_settings")
-    rows = cursor.fetchall()
-    conn.close()
-    return {row['key']: row['value'] for row in rows}
-
-@customer_bp.app_context_processor
-def inject_site_settings():
-    """Injects site_settings automatically into all customer templates"""
-    try:
-        settings = get_site_settings_dict()
-    except Exception:
-        settings = {}
-    return dict(site_settings=settings)
-
 def send_email_via_brevo(to_email, subject, html_content):
     api_key = os.environ.get('BREVO_API_KEY', '')
     url = "https://api.brevo.com/v3/smtp/email"
@@ -170,6 +152,27 @@ def add_to_cart(product_id):
     flash('Item trolley mein add ho gaya.', 'success')
     return redirect(request.referrer or url_for('customer.home'))
 
+# ADDED MISSING ROUTE FOR ADJUSTING CART ITEM QUANTITIES (+ / - / DELETE)
+@customer_bp.route('/cart/adjust/<int:product_id>/<string:action>', methods=['POST'])
+def adjust_cart(product_id, action):
+    cart = session.get('cart', {})
+    pid = str(product_id)
+    
+    if pid in cart:
+        if action == 'increase':
+            cart[pid] += 1
+        elif action == 'decrease':
+            cart[pid] -= 1
+            if cart[pid] <= 0:
+                del cart[pid]
+        elif action == 'remove':
+            del cart[pid]
+            
+        session['cart'] = cart
+        session.modified = True
+        
+    return redirect(url_for('customer.view_cart'))
+
 @customer_bp.route('/cart')
 def view_cart():
     cart = session.get('cart', {})
@@ -198,6 +201,7 @@ def view_cart():
             cart_items.append({
                 'id': product['id'],
                 'name': product['name'],
+                'image_url': product['image_url'],
                 'original_price': orig_price,
                 'discount_percent': disc_percent,
                 'price': final_price,
