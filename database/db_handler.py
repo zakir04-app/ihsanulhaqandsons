@@ -1,5 +1,6 @@
 import sqlite3
 import os
+from werkzeug.security import generate_password_hash
 
 DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'database.db')
 
@@ -114,6 +115,57 @@ def init_db():
         )
     ''')
     
+    conn.commit()
+    conn.close()
+    
+    # Execute Default Data Seeding
+    seed_default_data()
+
+def seed_default_data():
+    """Inserts essential admin account, store settings, and base inventory if database is fresh"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # 1. Ensure Permanent Admin User Exists
+    admin_email = "zakir.ullah0004@gmail.com"
+    cursor.execute("SELECT id FROM users WHERE email = ?", (admin_email,))
+    if not cursor.fetchone():
+        hashed_pass = generate_password_hash("admin123")
+        cursor.execute('''
+            INSERT INTO users (username, email, password, password_hash, role, is_verified)
+            VALUES (?, ?, ?, ?, 'admin', 1)
+        ''', ('Zakir Admin', admin_email, hashed_pass, hashed_pass))
+        print("--> DEFAULT ADMIN ACCOUNT CREATED SUCCESSFULLY")
+
+    # 2. Ensure Store CMS Settings Exist
+    default_settings = {
+        'store_title': 'Ihsan Ul Haq & Sons General Store',
+        'primary_color': '#198754',
+        'contact_phone': '+92 300 0000000',
+        'contact_email': 'zakir.ullah0004@gmail.com',
+        'contact_address': 'Main Market Road, City',
+        'whatsapp_no': '923000000000',
+        'about_text': 'Welcome to Ihsan Ul Haq & Sons General Store.'
+    }
+    for k, v in default_settings.items():
+        cursor.execute("INSERT OR IGNORE INTO site_settings (key, value) VALUES (?, ?)", (k, v))
+
+    # 3. Ensure Default Inventory Base Exists
+    cursor.execute("SELECT COUNT(*) as cnt FROM products")
+    if cursor.fetchone()['cnt'] == 0:
+        base_products = [
+            ('Sufi Cooking Oil 1L', 'Pure vegetable cooking oil', 520.00, 100, '', 'Essentials'),
+            ('Basmati Rice 5kg', 'Premium long grain rice', 1450.00, 50, '', 'Grains'),
+            ('Wheat Flour (Atta) 10kg', 'Whole wheat fresh flour', 1200.00, 40, '', 'Grains'),
+            ('MilkPak 1L', 'UHT Pure Milk Pack', 290.00, 200, '', 'Dairy')
+        ]
+        for name, desc, price, stock, img, cat in base_products:
+            cursor.execute('''
+                INSERT INTO products (name, description, price, stock, image_url, category)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ''', (name, desc, price, stock, img, cat))
+        print("--> BASE INVENTORY SEEDED SUCCESSFULLY")
+
     conn.commit()
     conn.close()
 

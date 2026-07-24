@@ -32,17 +32,17 @@
     <ul class="nav nav-pills nav-fill bg-white p-2 rounded-3 shadow-sm border mb-4 gap-2" id="adminMenuTab" role="tablist">
         <li class="nav-item">
             <button class="nav-link active fw-bold py-2" id="orders-tab" data-bs-toggle="tab" data-bs-target="#orders-sec" type="button" role="tab">
-                <i class="bi bi-box-seam me-1"></i> Live Orders & Delivery Details
+                <i class="bi bi-box-seam me-1"></i> Live Orders & Delivery
             </button>
         </li>
         <li class="nav-item">
             <button class="nav-link fw-bold py-2" id="banners-tab" data-bs-toggle="tab" data-bs-target="#banners-sec" type="button" role="tab">
-                <i class="bi bi-megaphone me-1"></i> Offer Banners & Bulk Items
+                <i class="bi bi-megaphone me-1"></i> Offers & Banners
             </button>
         </li>
         <li class="nav-item">
             <button class="nav-link fw-bold py-2" id="inventory-tab" data-bs-toggle="tab" data-bs-target="#inventory-sec" type="button" role="tab">
-                <i class="bi bi-cart-plus me-1"></i> Inventory Catalog
+                <i class="bi bi-cart-plus me-1"></i> Inventory & Stock
             </button>
         </li>
         <li class="nav-item">
@@ -52,7 +52,7 @@
         </li>
         <li class="nav-item">
             <button class="nav-link fw-bold py-2" id="cms-tab" data-bs-toggle="tab" data-bs-target="#cms-sec" type="button" role="tab">
-                <i class="bi bi-sliders me-1"></i> CMS & Settings
+                <i class="bi bi-sliders me-1"></i> CMS & Branding
             </button>
         </li>
         <li class="nav-item">
@@ -64,7 +64,7 @@
 
     <div class="tab-content" id="adminMenuTabContent">
         
-        <!-- TAB 1: LIVE ORDERS WITH FULL DELIVERY ADDRESS & CALL LINK -->
+        <!-- TAB 1: LIVE ORDERS -->
         <div class="tab-pane fade show active" id="orders-sec" role="tabpanel">
             <div class="card shadow border-0">
                 <div class="card-header bg-dark text-white p-3">
@@ -233,11 +233,11 @@
             </div>
         </div>
 
-        <!-- TAB 3: INVENTORY CATALOG -->
+        <!-- TAB 3: INVENTORY CATALOG WITH WORKING EDIT MODALS & DELETE FORMS -->
         <div class="tab-pane fade" id="inventory-sec" role="tabpanel">
             <div class="card shadow border-0">
                 <div class="card-header bg-success text-white p-3 d-flex justify-content-between align-items-center">
-                    <h5 class="fw-bold mb-0"><i class="bi bi-cart-plus"></i> Inventory & Product Catalog</h5>
+                    <h5 class="fw-bold mb-0"><i class="bi bi-cart-plus"></i> Inventory & Product Catalog Management</h5>
                     <a href="{{ url_for('admin.download_template') }}" class="btn btn-sm btn-light fw-bold">
                         <i class="bi bi-download"></i> Sample CSV
                     </a>
@@ -295,26 +295,115 @@
                         <table class="table table-hover align-middle small">
                             <thead class="table-light">
                                 <tr>
+                                    <th>Image</th>
                                     <th>ID</th>
                                     <th>Name</th>
                                     <th>Category</th>
                                     <th>Price</th>
                                     <th>Stock</th>
+                                    <th class="text-center">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for p in products %}
                                 <tr>
+                                    <td>
+                                        {% if p.image_url %}
+                                            <img src="{{ p.image_url }}" alt="{{ p.name }}" class="rounded border" style="width: 40px; height: 40px; object-fit: cover;">
+                                        {% else %}
+                                            <div class="bg-light rounded border d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                                <i class="bi bi-basket text-secondary fs-5"></i>
+                                            </div>
+                                        {% endif %}
+                                    </td>
                                     <td>#{{ p.id }}</td>
                                     <td class="fw-bold text-dark">{{ p.name }}</td>
                                     <td><span class="badge bg-secondary">{{ p.category or 'General' }}</span></td>
                                     <td class="text-success fw-bold">PKR {{ "%.2f"|format(p.price) }}</td>
-                                    <td>{{ p.stock }}</td>
+                                    <td>
+                                        {% if p.stock < 10 %}
+                                            <span class="badge bg-danger">{{ p.stock }} (Low)</span>
+                                        {% else %}
+                                            <span class="badge bg-success">{{ p.stock }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        <!-- TRIGGER EDIT MODAL -->
+                                        <button type="button" class="btn btn-sm btn-outline-primary fw-bold me-1" data-bs-toggle="modal" data-bs-target="#editModal_{{ p.id }}">
+                                            <i class="bi bi-pencil"></i> Edit & Stock
+                                        </button>
+                                        
+                                        <!-- DELETE FORM -->
+                                        <form action="{{ url_for('admin.delete_product', product_id=p.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Kya aap waqai {{ p.name }} ko delete karna chahte hain?');">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger fw-bold">
+                                                <i class="bi bi-trash"></i> Delete
+                                            </button>
+                                        </form>
+                                    </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
                         </table>
                     </div>
+
+                    <!-- MODALS RENDERED OUTSIDE TABLE FOR GUARANTEED JS & DOM TARGETING -->
+                    {% for p in products %}
+                    <div class="modal fade" id="editModal_{{ p.id }}" tabindex="-1" aria-labelledby="editModalLabel_{{ p.id }}" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content text-start">
+                                <div class="modal-header bg-success text-white">
+                                    <h6 class="modal-title fw-bold" id="editModalLabel_{{ p.id }}">
+                                        <i class="bi bi-pencil-square"></i> Edit Product Details & Stock (#{{ p.id }})
+                                    </h6>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <form action="{{ url_for('admin.edit_product', product_id=p.id) }}" method="POST" enctype="multipart/form-data">
+                                    <div class="modal-body">
+                                        <div class="row g-2">
+                                            <div class="col-12">
+                                                <label class="form-label small fw-bold mb-1">Product Title Name</label>
+                                                <input type="text" name="name" class="form-control form-control-sm" value="{{ p.name }}" required>
+                                            </div>
+                                            <div class="col-6">
+                                                <label class="form-label small fw-bold mb-1">Price (PKR)</label>
+                                                <input type="number" step="0.01" name="price" class="form-control form-control-sm" value="{{ p.price }}" required>
+                                            </div>
+                                            <div class="col-6">
+                                                <label class="form-label small fw-bold mb-1">Stock Quantity</label>
+                                                <input type="number" name="stock" class="form-control form-control-sm" value="{{ p.stock }}" required>
+                                            </div>
+                                            <div class="col-12">
+                                                <label class="form-label small fw-bold mb-1">Category</label>
+                                                <select name="category_select" class="form-select form-select-sm mb-1">
+                                                    {% for cat in categories %}
+                                                        <option value="{{ cat }}" {% if p.category == cat %}selected{% endif %}>{{ cat }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                                <input type="text" name="category_custom" class="form-control form-control-sm" placeholder="Or type new category name">
+                                            </div>
+                                            <div class="col-12">
+                                                <label class="form-label small fw-bold mb-1">Description</label>
+                                                <textarea name="description" class="form-control form-control-sm" rows="2">{{ p.description or '' }}</textarea>
+                                            </div>
+                                            <div class="col-12">
+                                                <label class="form-label small fw-bold mb-1">Change Image (Optional)</label>
+                                                <input type="file" name="product_file" class="form-control form-control-sm">
+                                                <small class="text-muted d-block mt-1">Nayi file select na karne par purani image active rahegi.</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-sm btn-secondary fw-bold" data-bs-dismiss="modal">Cancel</button>
+                                        <button type="submit" class="btn btn-sm btn-success fw-bold">
+                                            <i class="bi bi-save me-1"></i> Save Changes
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+
                 </div>
             </div>
         </div>
@@ -364,7 +453,7 @@
             </div>
         </div>
 
-        <!-- TAB 5: CMS & SETTINGS WITH EDITABLE EMAIL OPTION -->
+        <!-- TAB 5: CMS & SETTINGS -->
         <div class="tab-pane fade" id="cms-sec" role="tabpanel">
             <div class="card shadow border-0">
                 <div class="card-header bg-success text-white p-3">

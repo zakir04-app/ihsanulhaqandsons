@@ -108,7 +108,7 @@ def dashboard():
     cursor.execute("SELECT * FROM products ORDER BY id DESC")
     products = cursor.fetchall()
     
-    cursor.execute("SELECT DISTINCT category FROM products WHERE category IS NOT NULL")
+    cursor.execute("SELECT DISTINCT category FROM products WHERE category IS NOT NULL AND category != ''")
     categories = [r['category'] for r in cursor.fetchall()]
     
     cursor.execute("SELECT * FROM banners ORDER BY id DESC")
@@ -153,6 +153,64 @@ def dashboard():
     
     conn.close()
     return render_template('admin_dashboard.html', products=products, categories=categories, banners=banners, orders=orders, total_orders=total_orders, users=users, settings=site_settings)
+
+# WORKING PRODUCT EDIT ROUTE
+@admin_bp.route('/product/edit/<int:product_id>', methods=['POST'])
+def edit_product(product_id):
+    if not is_admin(): 
+        return redirect(url_for('auth.login'))
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("SELECT * FROM products WHERE id = ?", (product_id,))
+    product = cursor.fetchone()
+    
+    if not product:
+        conn.close()
+        flash('Product nahi mila.', 'error')
+        return redirect(url_for('admin.dashboard'))
+        
+    name = request.form.get('name', '').strip()
+    description = request.form.get('description', '').strip()
+    price = float(request.form.get('price', product['price']))
+    stock = int(request.form.get('stock', product['stock']))
+    
+    selected_category = request.form.get('category_select')
+    custom_category = request.form.get('category_custom', '').strip()
+    category = custom_category if custom_category else selected_category
+    if not category: 
+        category = product['category'] or "General"
+    
+    uploaded_img = handle_image_upload('product_file')
+    image_url = uploaded_img if uploaded_img else product['image_url']
+    
+    cursor.execute('''
+        UPDATE products 
+        SET name = ?, description = ?, price = ?, stock = ?, category = ?, image_url = ?
+        WHERE id = ?
+    ''', (name, description, price, stock, category, image_url, product_id))
+    
+    conn.commit()
+    conn.close()
+    
+    flash(f'Product #{product_id} ({name}) updated successfully!', 'success')
+    return redirect(url_for('admin.dashboard'))
+
+# WORKING PRODUCT DELETE ROUTE
+@admin_bp.route('/product/delete/<int:product_id>', methods=['POST'])
+def delete_product(product_id):
+    if not is_admin(): 
+        return redirect(url_for('auth.login'))
+        
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM products WHERE id = ?", (product_id,))
+    conn.commit()
+    conn.close()
+    
+    flash(f'Product #{product_id} deleted from catalog.', 'warning')
+    return redirect(url_for('admin.dashboard'))
 
 @admin_bp.route('/banner/add', methods=['POST'])
 def add_banner():
