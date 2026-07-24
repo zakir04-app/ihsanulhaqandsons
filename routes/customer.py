@@ -8,9 +8,26 @@ customer_bp = Blueprint('customer', __name__)
 
 ADMIN_NOTIFICATION_EMAIL = "zakir.ullah0004@gmail.com"
 
+def get_site_settings_dict():
+    """Helper function to fetch site settings key-value pairs"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM site_settings")
+    rows = cursor.fetchall()
+    conn.close()
+    return {row['key']: row['value'] for row in rows}
+
+@customer_bp.app_context_processor
+def inject_site_settings():
+    """Injects site_settings automatically into all customer templates"""
+    try:
+        settings = get_site_settings_dict()
+    except Exception:
+        settings = {}
+    return dict(site_settings=settings)
+
 def send_email_via_brevo(to_email, subject, html_content):
-    """Generic function to send transactional emails via Brevo HTTPS API"""
-    api_key = os.environ.get('BREVO_API_KEY', 'FyExk7nvDBS4POHM')
+    api_key = os.environ.get('BREVO_API_KEY', '')
     url = "https://api.brevo.com/v3/smtp/email"
     
     headers = {
@@ -33,9 +50,7 @@ def send_email_via_brevo(to_email, subject, html_content):
         print(f"--> BREVO EMAIL ERROR: {str(e)}", file=sys.stderr)
         return False
 
-def generate_invoice_html(username, order_id, cart_items, grand_total, payment_method, trx_id, is_admin_copy=False):
-    """Generates a professional HTML invoice table with Original Price, Offers, and Quantities"""
-    
+def generate_invoice_html(username, full_name, phone, address, city, order_id, cart_items, grand_total, payment_method, trx_id, is_admin_copy=False):
     items_rows = ""
     for item in cart_items:
         offer_info = f"<br><small style='color: #d9534f;'>Discount: {item['discount_percent']}% OFF (Orig: PKR {item['original_price']:.2f})</small>" if item['discount_percent'] > 0 else ""
@@ -51,7 +66,7 @@ def generate_invoice_html(username, order_id, cart_items, grand_total, payment_m
         </tr>
         """
         
-    header_title = "NEW ORDER RECEIVED!" if is_admin_copy else "Order Confirmation & Official Bill"
+    header_title = "NEW ORDER RECEIVED!" if is_admin_copy else "Order Confirmation & Invoice"
     header_bg = "#0d6efd" if is_admin_copy else "#198754"
     
     html_content = f"""
@@ -62,17 +77,19 @@ def generate_invoice_html(username, order_id, cart_items, grand_total, payment_m
         </div>
         
         <div style="padding: 20px;">
-            <table style="width: 100%; margin-bottom: 15px; font-size: 14px;">
-                <tr><td><b>Customer Name:</b> {username}</td><td style="text-align: right;"><b>Order ID:</b> #{order_id}</td></tr>
+            <table style="width: 100%; margin-bottom: 15px; font-size: 14px; background-color: #f9f9f9; padding: 10px; border-radius: 5px;">
+                <tr><td><b>Recipient Name:</b> {full_name} ({username})</td><td style="text-align: right;"><b>Order ID:</b> #{order_id}</td></tr>
+                <tr><td><b>Phone / Call:</b> {phone}</td><td style="text-align: right;"><b>City:</b> {city}</td></tr>
+                <tr><td colspan="2"><b>Delivery Address:</b> {address}</td></tr>
                 <tr><td><b>Payment Method:</b> {payment_method}</td><td style="text-align: right;"><b>TRX ID:</b> {trx_id if trx_id else 'N/A'}</td></tr>
             </table>
             
             <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
                 <thead>
                     <tr style="background-color: #f8f9fa;">
-                        <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd;">Item Details</th>
+                        <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd;">Item</th>
                         <th style="padding: 10px; text-align: center; border-bottom: 2px solid #ddd;">Qty</th>
-                        <th style="padding: 10px; text-align: right; border-bottom: 2px solid #ddd;">Final Unit Price</th>
+                        <th style="padding: 10px; text-align: right; border-bottom: 2px solid #ddd;">Unit Price</th>
                         <th style="padding: 10px; text-align: right; border-bottom: 2px solid #ddd;">Total</th>
                     </tr>
                 </thead>
@@ -128,52 +145,12 @@ def home():
         else:
             item['discounted_price'] = None
         products.append(item)
-    
-    # Best Sellers
-    cursor.execute('''
-        SELECT products.*, banners.discount_percentage, SUM(order_items.quantity) as total_sold
-        FROM order_items
-        JOIN products ON order_items.product_id = products.id
-        LEFT JOIN banners ON products.banner_id = banners.id
-        GROUP BY products.id
-        ORDER BY total_sold DESC
-        LIMIT 4
-    ''')
-    best_sellers_raw = cursor.fetchall()
-    best_sellers = []
-    for p in best_sellers_raw:
-        item = dict(p)
-        if item['discount_percentage'] and item['discount_percentage'] > 0:
-            item['discounted_price'] = round(item['price'] * (1 - item['discount_percentage'] / 100), 2)
-        else:
-            item['discounted_price'] = None
-        best_sellers.append(item)
-
-    # Recent Sales
-    cursor.execute('''
-        SELECT DISTINCT products.*, banners.discount_percentage, orders.id as order_id
-        FROM order_items
-        JOIN orders ON order_items.order_id = orders.id
-        JOIN products ON order_items.product_id = products.id
-        LEFT JOIN banners ON products.banner_id = banners.id
-        ORDER BY orders.id DESC
-        LIMIT 4
-    ''')
-    recent_sales_raw = cursor.fetchall()
-    recent_sales = []
-    for p in recent_sales_raw:
-        item = dict(p)
-        if item['discount_percentage'] and item['discount_percentage'] > 0:
-            item['discounted_price'] = round(item['price'] * (1 - item['discount_percentage'] / 100), 2)
-        else:
-            item['discounted_price'] = None
-        recent_sales.append(item)
 
     cursor.execute("SELECT DISTINCT category FROM products WHERE category IS NOT NULL")
     categories = [r['category'] for r in cursor.fetchall()]
     
     conn.close()
-    return render_template('index.html', products=products, categories=categories, banners=banners, best_sellers=best_sellers, recent_sales=recent_sales, selected_category=category_filter, selected_banner=banner_filter)
+    return render_template('index.html', products=products, categories=categories, banners=banners, selected_category=category_filter, selected_banner=banner_filter)
 
 @customer_bp.route('/about')
 def about():
@@ -187,42 +164,11 @@ def contact():
 def add_to_cart(product_id):
     cart = session.get('cart', {})
     pid = str(product_id)
-    
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT id FROM products WHERE id = ?", (product_id,))
-    product_exists = cursor.fetchone()
-    conn.close()
-    
-    if not product_exists:
-        flash('Maazrat, yeh product inventory mein available nahi hai.', 'error')
-        return redirect(request.referrer or url_for('customer.home'))
-        
     cart[pid] = cart.get(pid, 0) + 1
     session['cart'] = cart
     session.modified = True
-    
     flash('Item trolley mein add ho gaya.', 'success')
     return redirect(request.referrer or url_for('customer.home'))
-
-@customer_bp.route('/cart/adjust/<int:product_id>/<string:action>', methods=['POST'])
-def adjust_cart(product_id, action):
-    cart = session.get('cart', {})
-    pid = str(product_id)
-    
-    if pid in cart:
-        if action == 'increase':
-            cart[pid] += 1
-        elif action == 'decrease':
-            cart[pid] -= 1
-            if cart[pid] <= 0:
-                cart.pop(pid)
-        elif action == 'remove':
-            cart.pop(pid, None)
-                
-    session['cart'] = cart
-    session.modified = True
-    return redirect(url_for('customer.view_cart'))
 
 @customer_bp.route('/cart')
 def view_cart():
@@ -232,7 +178,6 @@ def view_cart():
     
     cart_items = []
     grand_total = 0.0
-    verified_cart_session = {}
     
     for pid, qty in list(cart.items()):
         cursor.execute('''
@@ -246,9 +191,7 @@ def view_cart():
         if product:
             orig_price = round(product['price'], 2)
             disc_percent = product['discount_percentage'] if product['discount_percentage'] else 0
-            
-            final_price = orig_price * (1 - disc_percent / 100) if disc_percent > 0 else orig_price
-            final_price = round(final_price, 2)
+            final_price = round(orig_price * (1 - disc_percent / 100), 2) if disc_percent > 0 else orig_price
             subtotal = round(final_price * qty, 2)
             grand_total += subtotal
             
@@ -261,18 +204,14 @@ def view_cart():
                 'qty': qty,
                 'total': subtotal
             })
-            verified_cart_session[pid] = qty
             
-    session['cart'] = verified_cart_session
-    session.modified = True
     conn.close()
-    
     return render_template('cart.html', items=cart_items, total=round(grand_total, 2))
 
 @customer_bp.route('/checkout', methods=['GET', 'POST'])
 def checkout():
     if 'user_id' not in session:
-        flash('Checkout karne ke liye pehle login karna zaroori hai.', 'warning')
+        flash('Checkout karne ke liye pehle login karein.', 'warning')
         return redirect(url_for('auth.login'))
         
     cart = session.get('cart', {})
@@ -285,7 +224,6 @@ def checkout():
     
     cart_items = []
     grand_total = 0.0
-    
     for pid, qty in list(cart.items()):
         cursor.execute('''
             SELECT products.*, banners.discount_percentage 
@@ -297,9 +235,7 @@ def checkout():
         if prod:
             orig_price = round(prod['price'], 2)
             disc_percent = prod['discount_percentage'] if prod['discount_percentage'] else 0
-            
-            final_price = orig_price * (1 - disc_percent / 100) if disc_percent > 0 else orig_price
-            final_price = round(final_price, 2)
+            final_price = round(orig_price * (1 - disc_percent / 100), 2) if disc_percent > 0 else orig_price
             subtotal = round(final_price * qty, 2)
             grand_total += subtotal
             
@@ -316,19 +252,23 @@ def checkout():
     grand_total = round(grand_total, 2)
             
     if request.method == 'POST':
+        full_name = request.form.get('full_name', '').strip()
+        phone_number = request.form.get('phone_number', '').strip()
+        address = request.form.get('address', '').strip()
+        city = request.form.get('city', 'Lahore').strip()
         payment_method = request.form.get('payment_method')
         trx_id = request.form.get('transaction_id', '').strip()
         
-        if payment_method in ['EasyPaisa', 'JazzCash'] and not trx_id:
-            flash('Mobile account transaction ke liye valid TRX ID code likhna lazmi hai.', 'error')
+        if not full_name or not phone_number or not address:
+            flash('Delivery Naam, Phone Number aur Address likhna lazmi hai.', 'error')
             conn.close()
             return redirect(url_for('customer.checkout'))
-            
+
         try:
             cursor.execute('''
-                INSERT INTO orders (user_id, total_price, payment_method, transaction_id, status)
-                VALUES (?, ?, ?, ?, 'Placed Order')
-            ''', (session['user_id'], grand_total, payment_method, trx_id if trx_id else None))
+                INSERT INTO orders (user_id, full_name, phone_number, address, city, total_price, payment_method, transaction_id, status)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Placed Order')
+            ''', (session['user_id'], full_name, phone_number, address, city, grand_total, payment_method, trx_id if trx_id else None))
             
             order_id = cursor.lastrowid
             
@@ -337,7 +277,6 @@ def checkout():
                     INSERT INTO order_items (order_id, product_id, quantity, price)
                     VALUES (?, ?, ?, ?)
                 ''', (order_id, item['id'], item['qty'], item['price']))
-                
                 cursor.execute('UPDATE products SET stock = stock - ? WHERE id = ?', (item['qty'], item['id']))
                 
             conn.commit()
@@ -346,16 +285,14 @@ def checkout():
             user_info = cursor.fetchone()
             
             if user_info:
-                # 1. Send Bill to Customer
-                cust_html = generate_invoice_html(user_info['username'], order_id, cart_items, grand_total, payment_method, trx_id, is_admin_copy=False)
+                cust_html = generate_invoice_html(user_info['username'], full_name, phone_number, address, city, order_id, cart_items, grand_total, payment_method, trx_id, is_admin_copy=False)
                 send_email_via_brevo(user_info['email'], f"Order Confirmation #{order_id} - Ihsan Store", cust_html)
                 
-                # 2. Send Alert to Admin
-                admin_html = generate_invoice_html(user_info['username'], order_id, cart_items, grand_total, payment_method, trx_id, is_admin_copy=True)
-                send_email_via_brevo(ADMIN_NOTIFICATION_EMAIL, f"ACTION REQUIRED: New Order #{order_id} Received from {user_info['username']}", admin_html)
+                admin_html = generate_invoice_html(user_info['username'], full_name, phone_number, address, city, order_id, cart_items, grand_total, payment_method, trx_id, is_admin_copy=True)
+                send_email_via_brevo(ADMIN_NOTIFICATION_EMAIL, f"NEW ORDER #{order_id} - Call {phone_number}", admin_html)
             
             session.pop('cart', None)
-            flash(f'Alhamdulillah! Apka order submit ho gaya hai. Bill email par bhej diya gaya hai. Order ID: #{order_id}', 'success')
+            flash(f'Alhamdulillah! Apka order submit ho gaya hai. Order ID: #{order_id}', 'success')
             return redirect(url_for('customer.home'))
             
         except Exception as e:
@@ -364,7 +301,5 @@ def checkout():
         finally:
             conn.close()
             
-    else:
-        conn.close()
-        
+    conn.close()
     return render_template('checkout.html', cart_items=cart_items, grand_total=grand_total)

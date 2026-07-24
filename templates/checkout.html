@@ -1,93 +1,72 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-9">
-        <div class="card shadow-lg border-0 p-4 rounded-4 bg-white">
-            <h3 class="fw-bold text-success mb-2"><i class="bi bi-receipt"></i> Checkout Invoice Breakdown</h3>
-            <p class="text-muted small mb-4">Aapke order aur discounts ki tafseelat neeche di gayi hai:</p>
-
-            <!-- Detailed Invoice Table -->
-            <div class="table-responsive mb-4">
-                <table class="table table-bordered align-middle">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>Item Name</th>
-                            <th class="text-center">Original Price</th>
-                            <th class="text-center">Offer / Discount</th>
-                            <th class="text-center">Final Unit Price</th>
-                            <th class="text-center">Qty</th>
-                            <th class="text-end">Total</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for item in cart_items %}
-                        <tr>
-                            <td class="fw-bold text-dark">{{ item.name }}</td>
-                            <td class="text-center text-muted">
-                                {% if item.discount_percent > 0 %}
-                                    <del>PKR {{ "%.2f"|format(item.original_price) }}</del>
-                                {% else %}
-                                    PKR {{ "%.2f"|format(item.original_price) }}
-                                {% endif %}
-                            </td>
-                            <td class="text-center">
-                                {% if item.discount_percent > 0 %}
-                                    <span class="badge bg-danger">{{ item.discount_percent }}% OFF</span>
-                                {% else %}
-                                    <span class="badge bg-secondary">No Offer</span>
-                                {% endif %}
-                            </td>
-                            <td class="text-center fw-bold text-success">
-                                PKR {{ "%.2f"|format(item.price) }}
-                            </td>
-                            <td class="text-center fw-bold">{{ item.qty }}</td>
-                            <td class="text-end fw-bold text-success">PKR {{ "%.2f"|format(item.total) }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                    <tfoot>
-                        <tr class="table-success">
-                            <td colspan="5" class="fw-bold text-end fs-5">Grand Total Payable:</td>
-                            <td class="fw-bold text-end fs-5 text-success">PKR {{ "%.2f"|format(grand_total) }}</td>
-                        </tr>
-                    </tfoot>
-                </table>
-            </div>
-
-            <!-- Payment Methods -->
+<div class="container py-4" style="max-width: 650px;">
+    <div class="card shadow border-0 rounded-4">
+        <div class="card-header bg-success text-white p-3">
+            <h5 class="fw-bold mb-0"><i class="bi bi-truck me-2"></i> Delivery Address & Checkout</h5>
+        </div>
+        <div class="card-body p-4">
+            
             <form action="{{ url_for('customer.checkout') }}" method="POST">
-                <h5 class="fw-bold text-dark mb-3">Select Payment Method</h5>
+                <h6 class="fw-bold text-dark mb-3"><i class="bi bi-person-lines-fill me-1"></i> 1. Recipient Contact & Delivery Info</h6>
                 
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Full Name</label>
+                    <input type="text" name="full_name" class="form-control" placeholder="e.g. Zakir Ullah" required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Mobile Phone Number (Required for Delivery Call)</label>
+                    <input type="tel" name="phone_number" class="form-control" placeholder="e.g. 03001234567" required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">City</label>
+                    <input type="text" name="city" class="form-control" value="Lahore" required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Complete House / Shop Address</label>
+                    <textarea name="address" class="form-control" rows="2" placeholder="House #, Street #, Area / Colony Name" required></textarea>
+                </div>
+
+                <hr class="my-4">
+
+                <h6 class="fw-bold text-dark mb-3"><i class="bi bi-wallet2 me-1"></i> 2. Payment Method</h6>
                 <div class="form-check mb-2">
-                    <input class="form-check-input" type="radio" name="payment_method" id="cod" value="COD" checked onclick="toggleTrxBox(false)">
+                    <input class="form-check-input" type="radio" name="payment_method" id="cod" value="Cash on Delivery" checked onclick="toggleTrx(false)">
                     <label class="form-check-label fw-bold" for="cod">
                         <i class="bi bi-truck text-success"></i> Cash on Delivery (COD)
                     </label>
                 </div>
-
-                <div class="form-check mb-2">
-                    <input class="form-check-input" type="radio" name="payment_method" id="easypaisa" value="EasyPaisa" onclick="toggleTrxBox(true)">
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="radio" name="payment_method" id="easypaisa" value="EasyPaisa" onclick="toggleTrx(true)">
                     <label class="form-check-label fw-bold" for="easypaisa">
                         <i class="bi bi-wallet2 text-primary"></i> EasyPaisa / JazzCash
                     </label>
                 </div>
 
-                <div id="trx_box" class="mt-3 p-3 border rounded bg-light" style="display: none;">
-                    <label class="form-label small fw-bold text-danger">Mobile Wallet TRX ID Code</label>
-                    <input type="text" name="transaction_id" class="form-control form-control-sm" placeholder="e.g. 0192837465">
+                <div id="trx_box" class="mb-3 p-3 border rounded bg-light" style="display: none;">
+                    <label class="form-label small fw-bold text-danger">TRX ID Code</label>
+                    <input type="text" name="transaction_id" class="form-control form-control-sm" placeholder="Enter EasyPaisa TRX Code">
                 </div>
 
-                <button type="submit" class="btn btn-success w-100 fw-bold mt-4 py-2 rounded-pill shadow">
-                    Confirm Order & Send Bill Receipt
+                <div class="bg-light p-3 rounded mb-3 text-end border">
+                    <h5 class="mb-0">Total Amount Payable: <span class="text-success fw-bold">PKR {{ "%.2f"|format(grand_total) }}</span></h5>
+                </div>
+
+                <button type="submit" class="btn btn-success w-100 fw-bold py-2 rounded-pill shadow">
+                    <i class="bi bi-check-circle me-1"></i> Confirm Order & Send Bill
                 </button>
             </form>
+
         </div>
     </div>
 </div>
 
 <script>
-function toggleTrxBox(show) {
+function toggleTrx(show) {
     document.getElementById('trx_box').style.display = show ? 'block' : 'none';
 }
 </script>

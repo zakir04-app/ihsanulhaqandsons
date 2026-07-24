@@ -41,9 +41,9 @@ def send_email_via_brevo_api(recipient_email, username, otp_code):
 @auth_bp.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        username = request.form.get('username').strip()
-        email = request.form.get('email').strip()
-        password = request.form.get('password')
+        username = request.form.get('username', '').strip()
+        email = request.form.get('email', '').strip().lower()
+        password = request.form.get('password', '').strip()
         
         if not username or not email or not password:
             flash('Tamam fields fill karna lazmi hain.', 'error')
@@ -65,9 +65,9 @@ def register():
             
         try:
             cursor.execute('''
-                INSERT INTO users (username, email, password_hash, role, is_verified, otp_code)
-                VALUES (?, ?, ?, 'customer', 0, ?)
-            ''', (username, email, password_hash, otp))
+                INSERT INTO users (username, email, password, password_hash, role, is_verified, otp_code)
+                VALUES (?, ?, ?, ?, 'customer', 0, ?)
+            ''', (username, email, password_hash, password_hash, otp))
             conn.commit()
             
             # --- EMAIL DISPATCH VIA HTTPS API ---
@@ -75,7 +75,6 @@ def register():
             if sent:
                 flash('Verification code aapke Email inbox par bhej diya gaya hai.', 'info')
             else:
-                # Testing fallback message so you aren't blocked during testing
                 flash(f'Email send nahi ho saka. (Testing OTP Code: {otp})', 'warning')
 
             session['verify_email'] = email
@@ -97,7 +96,7 @@ def verify_otp():
         return redirect(url_for('auth.register'))
         
     if request.method == 'POST':
-        input_otp = request.form.get('otp').strip()
+        input_otp = request.form.get('otp', '').strip()
         
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -124,8 +123,8 @@ def verify_otp():
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        email = request.form.get('email').strip()
-        password = request.form.get('password')
+        email = request.form.get('email', '').strip().lower()
+        password = request.form.get('password', '').strip()
         
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -133,35 +132,39 @@ def login():
         user = cursor.fetchone()
         conn.close()
         
-        if user and check_password_hash(user['password_hash'], password):
-            if not user['is_verified']:
-                session['verify_email'] = user['email']
-                
-                new_otp = str(random.randint(100000, 999999))
-                conn = get_db_connection()
-                cursor = conn.cursor()
-                cursor.execute("UPDATE users SET otp_code = ? WHERE email = ?", (new_otp, user['email']))
-                conn.commit()
-                conn.close()
-                
-                sent = send_email_via_brevo_api(user['email'], user['username'], new_otp)
-                if sent:
-                    flash('Apka email verified nahi hai. Naya OTP aapki email par bhej diya gaya hai.', 'warning')
-                else:
-                    flash(f'Email send nahi ho saka. (Testing OTP Code: {new_otp})', 'warning')
-                
-                return redirect(url_for('auth.verify_otp'))
-                
-            session['user_id'] = user['id']
-            session['username'] = user['username']
-            session['role'] = user['role'] 
+        if user:
+            stored_hash = user['password_hash'] if 'password_hash' in user.keys() and user['password_hash'] else user['password']
             
-            flash(f"Khush Aamdeed, {user['username']}!", 'success')
-            if user['role'] == 'admin':
-                return redirect(url_for('admin.dashboard'))
-            return redirect(url_for('customer.home'))
-        else:
-            flash('Ghalat Email ya Password, dobara koshish karein.', 'error')
+            if check_password_hash(stored_hash, password) or user['password'] == password:
+                if not user['is_verified']:
+                    session['verify_email'] = user['email']
+                    
+                    new_otp = str(random.randint(100000, 999999))
+                    conn = get_db_connection()
+                    cursor = conn.cursor()
+                    cursor.execute("UPDATE users SET otp_code = ? WHERE email = ?", (new_otp, user['email']))
+                    conn.commit()
+                    conn.close()
+                    
+                    sent = send_email_via_brevo_api(user['email'], user['username'], new_otp)
+                    if sent:
+                        flash('Apka email verified nahi hai. Naya OTP aapki email par bhej diya gaya hai.', 'warning')
+                    else:
+                        flash(f'Email send nahi ho saka. (Testing OTP Code: {new_otp})', 'warning')
+                    
+                    return redirect(url_for('auth.verify_otp'))
+                    
+                session['user_id'] = user['id']
+                session['username'] = user['username']
+                session['email'] = user['email']
+                session['role'] = user['role'] 
+                
+                flash(f"Khush Aamdeed, {user['username']}!", 'success')
+                if user['role'] == 'admin':
+                    return redirect(url_for('admin.dashboard'))
+                return redirect(url_for('customer.home'))
+                
+        flash('Ghalat Email ya Password, dobara koshish karein.', 'error')
             
     return render_template('login.html')
 

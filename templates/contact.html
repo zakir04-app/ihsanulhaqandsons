@@ -1,33 +1,90 @@
-<!-- templates/contact.html -->
 {% extends "base.html" %}
+
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-8">
-        <div class="card shadow border-0 p-5 rounded-4 bg-white">
-            <h3 class="fw-bold text-success mb-4 text-center"><i class="bi bi-telephone-inbound"></i> Contact Information</h3>
-            <div class="row mt-4">
-                <div class="col-md-6 mb-3">
-                    <div class="p-3 border rounded bg-light">
-                        <h6 class="fw-bold text-muted mb-1"><i class="bi bi-telephone text-success"></i> Phone Number</h6>
-                        <p class="mb-0 text-dark fw-semibold">{{ contact_phone or '+92 300 0000000' }}</p>
-                    </div>
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card shadow-sm border-0 rounded-3">
+                <div class="card-header bg-success text-white p-4 text-center">
+                    <h2 class="fw-bold mb-1"><i class="bi bi-telephone-inbound-fill"></i> Contact Us</h2>
+                    <p class="mb-0 text-white-50">Ihsan Ul Haq & Sons General Store Customer Support</p>
                 </div>
-                <div class="col-md-6 mb-3">
-                    <div class="p-3 border rounded bg-light">
-                        <h6 class="fw-bold text-muted mb-1"><i class="bi bi-envelope-at text-success"></i> Official Email</h6>
-                        <p class="mb-0 text-dark fw-semibold">{{ contact_email or 'info@ihsanstore.com' }}</p>
-                    </div>
-                </div>
-                <div class="col-md-6 mb-3">
-                    <div class="p-3 border rounded bg-light">
-                        <h6 class="fw-bold text-muted mb-1"><i class="bi bi-whatsapp text-success"></i> WhatsApp Support</h6>
-                        <p class="mb-0 text-dark fw-semibold">{{ whatsapp_no or '+92 300 0000000' }}</p>
-                    </div>
-                </div>
-                <div class="col-md-6 mb-3">
-                    <div class="p-3 border rounded bg-light">
-                        <h6 class="fw-bold text-muted mb-1"><i class="bi bi-geo-alt text-success"></i> Store Address</h6>
-                        <p class="mb-0 text-dark small">{{ contact_address or 'Main Bazar' }}</p>
+                <div class="card-body p-4">
+                    <div class="row g-4 text-center">
+                        
+                        <!-- 1. PHONE & WHATSAPP DISPLAY WITH DIRECT CALL/CHAT LINK -->
+                        <div class="col-md-4">
+                            <div class="p-3 bg-light rounded border h-100 d-flex flex-column justify-content-between">
+                                <div>
+                                    <div class="text-success fs-1 mb-2">
+                                        <i class="bi bi-whatsapp"></i>
+                                    </div>
+                                    <h6 class="fw-bold mb-2">Call / WhatsApp</h6>
+                                    {% set wa_num = site_settings.get('whatsapp_no') if site_settings else None %}
+                                    {% set ph_num = site_settings.get('contact_phone', '+92 300 0000000') if site_settings else '+92 300 0000000' %}
+                                    
+                                    <p class="fw-bold text-dark fs-6 mb-1">{{ ph_num }}</p>
+                                    <small class="text-muted d-block mb-3">Available for order inquiry & delivery support</small>
+                                </div>
+                                
+                                <div>
+                                    {% if wa_num %}
+                                    <a href="https://wa.me/{{ wa_num|replace(' ', '')|replace('+', '')|replace('-', '') }}" target="_blank" class="btn btn-sm btn-success fw-bold w-100">
+                                        <i class="bi bi-whatsapp me-1"></i> Open WhatsApp Chat
+                                    </a>
+                                    {% else %}
+                                    <a href="tel:{{ ph_num|replace(' ', '')|replace('-', '') }}" class="btn btn-sm btn-outline-success fw-bold w-100">
+                                        <i class="bi bi-telephone-fill me-1"></i> Call Mobile Number
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 2. EMAIL DISPLAY WITH DIRECT MAIL APP LINK -->
+                        <div class="col-md-4">
+                            <div class="p-3 bg-light rounded border h-100 d-flex flex-column justify-content-between">
+                                <div>
+                                    <div class="text-primary fs-1 mb-2">
+                                        <i class="bi bi-envelope-paper-fill"></i>
+                                    </div>
+                                    <h6 class="fw-bold mb-2">Official Email</h6>
+                                    {% set contact_mail = site_settings.get('contact_email', 'zakir.ullah0004@gmail.com') if site_settings else 'zakir.ullah0004@gmail.com' %}
+                                    
+                                    <p class="fw-bold text-dark fs-6 mb-1 text-break">{{ contact_mail }}</p>
+                                    <small class="text-muted d-block mb-3">Send us your suggestions or complaints</small>
+                                </div>
+
+                                <div>
+                                    <a href="mailto:{{ contact_mail }}" class="btn btn-sm btn-primary fw-bold w-100">
+                                        <i class="bi bi-envelope-fill me-1"></i> Send Direct Email
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 3. STORE LOCATION WITH GOOGLE MAPS NAVIGATION LINK -->
+                        <div class="col-md-4">
+                            <div class="p-3 bg-light rounded border h-100 d-flex flex-column justify-content-between">
+                                <div>
+                                    <div class="text-danger fs-1 mb-2">
+                                        <i class="bi bi-geo-alt-fill"></i>
+                                    </div>
+                                    <h6 class="fw-bold mb-2">Store Location</h6>
+                                    {% set store_addr = site_settings.get('contact_address', 'Ihsan Ul Haq & Sons General Store') if site_settings else 'Ihsan Ul Haq & Sons General Store' %}
+                                    
+                                    <p class="fw-bold text-dark small mb-1">{{ store_addr }}</p>
+                                    <small class="text-muted d-block mb-3">Visit us or get directions on Google Maps</small>
+                                </div>
+
+                                <div>
+                                    <a href="https://maps.app.goo.gl/m1p6LTGLaZyuKeoq9" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-danger fw-bold w-100">
+                                        <i class="bi bi-map-fill me-1"></i> Get Directions on Google Maps
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
             </div>

@@ -3,7 +3,6 @@ import csv
 import io
 import sys
 import requests
-import shutil
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, current_app, Response, send_file
 from werkzeug.utils import secure_filename
 from database.db_handler import get_db_connection
@@ -15,8 +14,7 @@ def is_admin():
     return session.get('role') == 'admin'
 
 def send_status_email(recipient_email, username, order_id, status):
-    """Sends status change notification to customer"""
-    api_key = os.environ.get('BREVO_API_KEY', 'FyExk7nvDBS4POHM')
+    api_key = os.environ.get('BREVO_API_KEY', '')
     url = "https://api.brevo.com/v3/smtp/email"
     
     headers = {
@@ -41,7 +39,7 @@ def send_status_email(recipient_email, username, order_id, status):
         <p style="font-size: 18px; text-align: center; padding: 10px; background-color: {color}; color: white; border-radius: 5px; font-weight: bold;">
             {status}
         </p>
-        <p>Aapke order ki tayari/delivery hamare standard schedule ke mutabiq jari hai. Kisi bhi query ke liye hum se rabta karein.</p>
+        <p>Aapke order ki delivery hamare standard schedule ke mutabiq jari hai.</p>
         <hr>
         <p style="font-size: 12px; color: #777; text-align: center;">Shukriya! Ihsan Store Team</p>
     </div>
@@ -85,17 +83,17 @@ def dashboard():
     cursor = conn.cursor()
     
     if request.method == 'POST':
-        name = request.form.get('name').strip()
-        description = request.form.get('description').strip()
+        name = request.form.get('name', '').strip()
+        description = request.form.get('description', '').strip()
         price = float(request.form.get('price', 0))
         stock = int(request.form.get('stock', 0))
         
         uploaded_img = handle_image_upload('product_file')
-        fallback_url = request.form.get('image_url').strip()
+        fallback_url = request.form.get('image_url', '').strip()
         image_url = uploaded_img if uploaded_img else fallback_url
         
         selected_category = request.form.get('category_select')
-        custom_category = request.form.get('category_custom').strip()
+        custom_category = request.form.get('category_custom', '').strip()
         category = custom_category if custom_category else selected_category
         if not category: category = "General"
             
@@ -114,17 +112,23 @@ def dashboard():
     categories = [r['category'] for r in cursor.fetchall()]
     
     cursor.execute("SELECT * FROM banners ORDER BY id DESC")
-    banners = cursor.fetchall()
+    banners_raw = cursor.fetchall()
+    
+    banners = []
+    for b in banners_raw:
+        banner_dict = dict(b)
+        cursor.execute("SELECT id, name, price FROM products WHERE banner_id = ?", (banner_dict['id'],))
+        banner_dict['linked_products'] = cursor.fetchall()
+        banners.append(banner_dict)
     
     cursor.execute('''
-        SELECT orders.id, COALESCE(users.username, 'Guest') as username, COALESCE(users.email, 'N/A') as email, orders.total_price, orders.payment_method, orders.transaction_id, orders.status 
+        SELECT orders.*, COALESCE(users.username, 'Guest') as username, COALESCE(users.email, 'N/A') as email
         FROM orders 
         LEFT JOIN users ON orders.user_id = users.id
         ORDER BY orders.id DESC
     ''')
     orders_raw = cursor.fetchall()
     
-    # Using 'order_items_list' to resolve dict.items() Jinja2 method collision
     orders = []
     for ord_item in orders_raw:
         o = dict(ord_item)
@@ -140,11 +144,68 @@ def dashboard():
     cursor.execute("SELECT COUNT(*) as count FROM orders WHERE status = 'Placed Order'")
     total_orders = cursor.fetchone()['count']
 
-    cursor.execute("SELECT id, username, email, role, is_verified FROM users ORDER BY id DESC")
+    cursor.execute("SELECT id, username, email, role FROM users ORDER BY id DESC")
     users = cursor.fetchall()
+
+    cursor.execute("SELECT * FROM site_settings")
+    settings_rows = cursor.fetchall()
+    site_settings = {row['key']: row['value'] for row in settings_rows}
     
     conn.close()
-    return render_template('admin_dashboard.html', products=products, categories=categories, banners=banners, orders=orders, total_orders=total_orders, users=users)
+    return render_template('admin_dashboard.html', products=products, categories=categories, banners=banners, orders=orders, total_orders=total_orders, users=users, settings=site_settings)
+
+@admin_bp.route('/banner/add', methods=['POST'])
+def add_banner():
+    if not is_admin(): return redirect(url_for('auth.login'))
+    
+    title = request.form.get('title', '').strip()
+    offer_text = request.form.get('offer_text', '').strip()
+    discount_percentage = int(request.form.get('discount_percentage', 0))
+    selected_products = request.form.getlist('offer_products')
+    target_category = request.form.get('target_category', '').strip()
+    
+    uploaded_banner = handle_image_upload('banner_file')
+    fallback_url = request.form.get('image_url', '').strip()
+    image_url = uploaded_banner if uploaded_banner else fallback_url
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute('INSERT INTO banners (title, offer_text, image_url, discount_percentage) VALUES (?, ?, ?, ?)', 
+                       (title, offer_text, image_url, discount_percentage))
+        banner_id = cursor.lastrowid
+        
+        if target_category and target_category != 'ALL':
+            cursor.execute("UPDATE products SET banner_id = ? WHERE category = ?", (banner_id, target_category))
+        elif target_category == 'ALL':
+            cursor.execute("UPDATE products SET banner_id = ?", (banner_id,))
+            
+        if selected_products:
+            for prod_id in selected_products:
+                cursor.execute("UPDATE products SET banner_id = ? WHERE id = ?", (banner_id, prod_id))
+                
+        conn.commit()
+        flash('Offer Banner Published & Items Linked Successfully!', 'success')
+    except Exception as e:
+        conn.rollback()
+        flash(f'Banner Error: {str(e)}', 'error')
+    finally:
+        conn.close()
+        
+    return redirect(url_for('admin.dashboard'))
+
+@admin_bp.route('/banner/delete/<int:banner_id>', methods=['POST'])
+def delete_banner(banner_id):
+    if not is_admin(): return redirect(url_for('auth.login'))
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE products SET banner_id = NULL WHERE banner_id = ?", (banner_id,))
+    cursor.execute("DELETE FROM banners WHERE id = ?", (banner_id,))
+    conn.commit()
+    conn.close()
+    flash('Banner and discount removed!', 'info')
+    return redirect(url_for('admin.dashboard'))
 
 @admin_bp.route('/settings/update', methods=['POST'])
 def update_settings():
@@ -185,13 +246,12 @@ def update_settings():
         
     conn.commit()
     conn.close()
-    flash('Website Layout, Theme, Logo & Dynamic Content updated successfully!', 'success')
+    flash('CMS Theme, Address & Contact Email successfully updated and synced!', 'success')
     return redirect(url_for('admin.dashboard'))
 
 @admin_bp.route('/order/status/<int:order_id>/<string:status>', methods=['POST'])
 def update_order_status(order_id, status):
     if not is_admin(): return redirect(url_for('auth.login'))
-    
     conn = get_db_connection()
     cursor = conn.cursor()
     
@@ -210,22 +270,7 @@ def update_order_status(order_id, status):
     if customer_info and customer_info['email'] != 'N/A':
         send_status_email(customer_info['email'], customer_info['username'], order_id, status)
         
-    flash(f"Order #{order_id} status updated to {status} aur customer ko notification bhej di gayi hai!", 'success')
-    return redirect(url_for('admin.dashboard'))
-
-@admin_bp.route('/user/edit/<int:user_id>', methods=['POST'])
-def edit_user(user_id):
-    if not is_admin(): return redirect(url_for('auth.login'))
-    username = request.form.get('username').strip()
-    email = request.form.get('email').strip()
-    role = request.form.get('role').strip()
-    
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("UPDATE users SET username = ?, email = ?, role = ? WHERE id = ?", (username, email, role, user_id))
-    conn.commit()
-    conn.close()
-    flash(f"User #{user_id} account details updated!", 'success')
+    flash(f"Order #{order_id} status updated to {status}!", 'success')
     return redirect(url_for('admin.dashboard'))
 
 @admin_bp.route('/user/delete/<int:user_id>', methods=['POST'])
@@ -237,55 +282,6 @@ def delete_user(user_id):
     conn.commit()
     conn.close()
     flash("User account deleted!", 'warning')
-    return redirect(url_for('admin.dashboard'))
-
-@admin_bp.route('/banner/add', methods=['POST'])
-def add_banner():
-    if not is_admin(): return redirect(url_for('auth.login'))
-    title = request.form.get('title').strip()
-    offer_text = request.form.get('offer_text').strip()
-    discount_percentage = int(request.form.get('discount_percentage', 0))
-    selected_products = request.form.getlist('offer_products')
-    uploaded_banner = handle_image_upload('banner_file')
-    fallback_url = request.form.get('image_url').strip()
-    image_url = uploaded_banner if uploaded_banner else fallback_url
-    
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute('INSERT INTO banners (title, offer_text, image_url, discount_percentage) VALUES (?, ?, ?, ?)', (title, offer_text, image_url, discount_percentage))
-    banner_id = cursor.lastrowid
-    
-    if selected_products:
-        for prod_id in selected_products:
-            cursor.execute("UPDATE products SET banner_id = ? WHERE id = ?", (banner_id, prod_id))
-            
-    conn.commit()
-    conn.close()
-    flash('Offer Banner Published!', 'success')
-    return redirect(url_for('admin.dashboard'))
-
-@admin_bp.route('/banner/edit/<int:banner_id>', methods=['POST'])
-def edit_banner(banner_id):
-    if not is_admin(): return redirect(url_for('auth.login'))
-    new_discount = int(request.form.get('discount_percentage', 0))
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("UPDATE banners SET discount_percentage = ? WHERE id = ?", (new_discount, banner_id))
-    conn.commit()
-    conn.close()
-    flash('Banner Discount updated!', 'success')
-    return redirect(url_for('admin.dashboard'))
-
-@admin_bp.route('/banner/delete/<int:banner_id>', methods=['POST'])
-def delete_banner(banner_id):
-    if not is_admin(): return redirect(url_for('auth.login'))
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("UPDATE products SET banner_id = NULL WHERE banner_id = ?", (banner_id,))
-    cursor.execute("DELETE FROM banners WHERE id = ?", (banner_id,))
-    conn.commit()
-    conn.close()
-    flash('Banner removed!', 'info')
     return redirect(url_for('admin.dashboard'))
 
 @admin_bp.route('/bulk-template', methods=['GET'])

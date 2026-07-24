@@ -3,7 +3,7 @@
 {% block content %}
 <div class="container-fluid py-4">
     
-    <!-- HEADER TITLE & PENDING BADGE -->
+    <!-- HEADER -->
     <div class="d-flex justify-content-between align-items-center mb-4 bg-white p-3 rounded-3 shadow-sm border">
         <div>
             <h3 class="fw-bold text-success mb-0">
@@ -28,136 +28,212 @@
       {% endif %}
     {% endwith %}
 
-    <!-- ========================================== -->
-    <!-- MAIN NAVIGATION MENU BAR (BOOTSTRAP TABS)  -->
-    <!-- ========================================== -->
+    <!-- NAVIGATION MENU BAR -->
     <ul class="nav nav-pills nav-fill bg-white p-2 rounded-3 shadow-sm border mb-4 gap-2" id="adminMenuTab" role="tablist">
-        <li class="nav-item" role="presentation">
+        <li class="nav-item">
             <button class="nav-link active fw-bold py-2" id="orders-tab" data-bs-toggle="tab" data-bs-target="#orders-sec" type="button" role="tab">
-                <i class="bi bi-box-seam me-1"></i> Live Orders & Packing
+                <i class="bi bi-box-seam me-1"></i> Live Orders & Delivery Details
             </button>
         </li>
-        <li class="nav-item" role="presentation">
+        <li class="nav-item">
+            <button class="nav-link fw-bold py-2" id="banners-tab" data-bs-toggle="tab" data-bs-target="#banners-sec" type="button" role="tab">
+                <i class="bi bi-megaphone me-1"></i> Offer Banners & Bulk Items
+            </button>
+        </li>
+        <li class="nav-item">
             <button class="nav-link fw-bold py-2" id="inventory-tab" data-bs-toggle="tab" data-bs-target="#inventory-sec" type="button" role="tab">
-                <i class="bi bi-cart-plus me-1"></i> Inventory & Products
+                <i class="bi bi-cart-plus me-1"></i> Inventory Catalog
             </button>
         </li>
-        <li class="nav-item" role="presentation">
+        <li class="nav-item">
             <button class="nav-link fw-bold py-2" id="users-tab" data-bs-toggle="tab" data-bs-target="#users-sec" type="button" role="tab">
                 <i class="bi bi-people-fill me-1"></i> Users Directory
             </button>
         </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link fw-bold py-2" id="banners-tab" data-bs-toggle="tab" data-bs-target="#banners-sec" type="button" role="tab">
-                <i class="bi bi-megaphone me-1"></i> Offer Banners
-            </button>
-        </li>
-        <li class="nav-item" role="presentation">
+        <li class="nav-item">
             <button class="nav-link fw-bold py-2" id="cms-tab" data-bs-toggle="tab" data-bs-target="#cms-sec" type="button" role="tab">
                 <i class="bi bi-sliders me-1"></i> CMS & Settings
             </button>
         </li>
-        <li class="nav-item" role="presentation">
+        <li class="nav-item">
             <button class="nav-link fw-bold py-2 text-danger" id="backup-tab" data-bs-toggle="tab" data-bs-target="#backup-sec" type="button" role="tab">
                 <i class="bi bi-hdd-fill me-1"></i> Hard Disk Backup
             </button>
         </li>
     </ul>
 
-    <!-- ========================================== -->
-    <!-- MENU CONTENT SECTIONS CONTAINER            -->
-    <!-- ========================================== -->
     <div class="tab-content" id="adminMenuTabContent">
         
-        <!-- SECTION 1: LIVE ORDERS & PACKING TRACKER -->
+        <!-- TAB 1: LIVE ORDERS WITH FULL DELIVERY ADDRESS & CALL LINK -->
         <div class="tab-pane fade show active" id="orders-sec" role="tabpanel">
             <div class="card shadow border-0">
                 <div class="card-header bg-dark text-white p-3">
-                    <h5 class="fw-bold mb-0"><i class="bi bi-box-seam"></i> Live Customer Orders & Preparation List</h5>
+                    <h5 class="fw-bold mb-0"><i class="bi bi-telephone-outbound"></i> Customer Orders & Delivery Contact Details</h5>
                 </div>
                 <div class="card-body p-4">
                     {% if orders %}
                         {% for order in orders %}
-                        <div class="card mb-3 border-0 bg-light shadow-sm">
+                        <div class="card mb-3 border-0 bg-light shadow-sm border-start border-success border-4">
                             <div class="card-body p-3">
                                 <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <h5 class="fw-bold text-dark mb-0">Order #{{ order.id }} — {{ order.username }}</h5>
+                                    <h5 class="fw-bold text-dark mb-0">Order #{{ order.id }} — {{ order.full_name or order.username }}</h5>
                                     <span class="badge {% if order.status=='Placed Order' %}bg-warning text-dark{% elif order.status=='Dispatched' %}bg-primary{% else %}bg-success{% endif %} fs-6">
                                         {{ order.status }}
                                     </span>
                                 </div>
-                                <p class="small text-muted mb-2">
-                                    <strong>Email:</strong> {{ order.email }} | 
-                                    <strong>Payment:</strong> {{ order.payment_method }} 
-                                    {% if order.transaction_id %}| <strong>TRX ID:</strong> <span class="badge bg-secondary">{{ order.transaction_id }}</span>{% endif %} |
-                                    <strong>Total Amount:</strong> <span class="fw-bold text-success">PKR {{ "%.2f"|format(order.total_price) }}</span>
-                                </p>
-
-                                <!-- DETAILED ITEMS TO PREPARE BOX -->
+                                
                                 <div class="bg-white p-3 rounded border mb-3">
-                                    <strong class="text-danger small d-block mb-2">
-                                        <i class="bi bi-list-check"></i> Items Customer Ordered (Order Preparation List):
-                                    </strong>
-                                    {% if order.order_items_list %}
-                                        <table class="table table-sm table-bordered mb-0 align-middle small">
-                                            <thead class="table-light">
-                                                <tr>
-                                                    <th>Product Name</th>
-                                                    <th class="text-center">Quantity</th>
-                                                    <th class="text-end">Unit Price Paid</th>
-                                                    <th class="text-end">Subtotal</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {% for item in order.order_items_list %}
-                                                <tr>
-                                                    <td class="fw-bold text-dark">{{ item.name }}</td>
-                                                    <td class="text-center fw-bold bg-warning bg-opacity-10">{{ item.quantity }}</td>
-                                                    <td class="text-end">PKR {{ "%.2f"|format(item.price) }}</td>
-                                                    <td class="text-end fw-bold text-success">PKR {{ "%.2f"|format(item.quantity * item.price) }}</td>
-                                                </tr>
-                                                {% endfor %}
-                                            </tbody>
-                                        </table>
-                                    {% else %}
-                                        <p class="small text-muted mb-0">No item details found for this order.</p>
-                                    {% endif %}
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <p class="mb-1">
+                                                <strong><i class="bi bi-envelope-fill text-primary"></i> Email:</strong> 
+                                                <a href="mailto:{{ order.email }}" class="text-decoration-none fw-bold text-dark">{{ order.email }}</a>
+                                            </p>
+                                            <p class="mb-1 text-danger fw-bold fs-6">
+                                                <i class="bi bi-telephone-fill"></i> Mobile Phone: {{ order.phone_number or 'N/A' }}
+                                                {% if order.phone_number %}
+                                                <a href="https://wa.me/{{ order.phone_number|replace(' ', '')|replace('-', '') }}" target="_blank" class="btn btn-sm btn-success py-0 px-2 ms-2">
+                                                    <i class="bi bi-whatsapp"></i> WhatsApp Call
+                                                </a>
+                                                {% endif %}
+                                            </p>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <p class="mb-1"><strong><i class="bi bi-geo-alt-fill text-danger"></i> Complete Delivery Address:</strong> {{ order.address or 'N/A' }}, {{ order.city or 'Lahore' }}</p>
+                                            <p class="mb-1"><strong><i class="bi bi-cash"></i> Payment:</strong> {{ order.payment_method }} {% if order.transaction_id %}(TRX: {{ order.transaction_id }}){% endif %}</p>
+                                        </div>
+                                    </div>
                                 </div>
 
-                                <!-- ORDER STATUS ACTION BUTTONS -->
-                                <div class="d-flex gap-2 flex-wrap align-items-center">
-                                    <span class="small fw-bold text-muted me-2">Update Status & Notify Email:</span>
-                                    
-                                    <form action="{{ url_for('admin.update_order_status', order_id=order.id, status='Placed Order') }}" method="POST">
-                                        <button type="submit" class="btn btn-sm btn-outline-warning fw-bold">Placed Order</button>
-                                    </form>
-                                    
+                                <div class="bg-white p-3 rounded border mb-3">
+                                    <strong class="text-secondary small d-block mb-2"><i class="bi bi-basket"></i> Ordered Items:</strong>
+                                    <table class="table table-sm table-bordered mb-0 align-middle small">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Product</th>
+                                                <th class="text-center">Qty</th>
+                                                <th class="text-end">Price</th>
+                                                <th class="text-end">Total</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for item in order.order_items_list %}
+                                            <tr>
+                                                <td class="fw-bold">{{ item.name }}</td>
+                                                <td class="text-center fw-bold">{{ item.quantity }}</td>
+                                                <td class="text-end">PKR {{ "%.2f"|format(item.price) }}</td>
+                                                <td class="text-end text-success fw-bold">PKR {{ "%.2f"|format(item.quantity * item.price) }}</td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <div class="d-flex gap-2">
                                     <form action="{{ url_for('admin.update_order_status', order_id=order.id, status='Dispatched') }}" method="POST">
-                                        <button type="submit" class="btn btn-sm btn-outline-primary fw-bold">
-                                            <i class="bi bi-truck"></i> Dispatched
-                                        </button>
+                                        <button type="submit" class="btn btn-sm btn-primary fw-bold">Set Dispatched</button>
                                     </form>
-                                    
                                     <form action="{{ url_for('admin.update_order_status', order_id=order.id, status='Delivered') }}" method="POST">
-                                        <button type="submit" class="btn btn-sm btn-outline-success fw-bold">
-                                            <i class="bi bi-check-circle"></i> Delivered
-                                        </button>
+                                        <button type="submit" class="btn btn-sm btn-success fw-bold">Set Delivered</button>
                                     </form>
                                 </div>
                             </div>
                         </div>
                         {% endfor %}
                     {% else %}
-                        <div class="text-center py-5 text-muted">
-                            <i class="bi bi-inbox fs-1 d-block mb-2"></i>
-                            Abhi tak koi naya order receive nahi hua.
-                        </div>
+                        <p class="text-center text-muted my-4">Koi order mojud nahi hai.</p>
                     {% endif %}
                 </div>
             </div>
         </div>
 
-        <!-- SECTION 2: INVENTORY & PRODUCT MANAGEMENT -->
+        <!-- TAB 2: OFFER BANNERS -->
+        <div class="tab-pane fade" id="banners-sec" role="tabpanel">
+            <div class="card shadow border-0">
+                <div class="card-header bg-primary text-white p-3">
+                    <h5 class="fw-bold mb-0"><i class="bi bi-megaphone"></i> Publish Offer Banners & Bulk Items Selection</h5>
+                </div>
+                <div class="card-body p-4">
+                    
+                    <form action="{{ url_for('admin.add_banner') }}" method="POST" enctype="multipart/form-data" class="p-3 bg-light rounded border mb-4">
+                        <div class="row g-2">
+                            <div class="col-md-6 mb-2">
+                                <label class="form-label small fw-bold">Offer Title</label>
+                                <input type="text" name="title" class="form-control form-control-sm" placeholder="e.g. Ramadan Bachat Offer" required>
+                            </div>
+                            <div class="col-md-6 mb-2">
+                                <label class="form-label small fw-bold">Offer Subtext</label>
+                                <input type="text" name="offer_text" class="form-control form-control-sm" placeholder="e.g. Flat 15% OFF on all Grocery">
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <label class="form-label small fw-bold">Discount Percentage (%)</label>
+                                <input type="number" name="discount_percentage" class="form-control form-control-sm" placeholder="15" min="0" max="100" required>
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <label class="form-label small fw-bold">Bulk Discount By Category</label>
+                                <select name="target_category" class="form-select form-select-sm">
+                                    <option value="">-- Select Category to Apply All --</option>
+                                    <option value="ALL">Apply To ALL Catalog Products</option>
+                                    {% for cat in categories %}
+                                        <option value="{{ cat }}">{{ cat }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <label class="form-label small fw-bold">Banner Image Upload</label>
+                                <input type="file" name="banner_file" class="form-control form-control-sm">
+                            </div>
+                            <div class="col-12 mb-2">
+                                <label class="form-label small fw-bold">Or Select Specific Individual Products (Hold Ctrl to select multiple)</label>
+                                <select name="offer_products" class="form-select form-select-sm" multiple style="height: 120px;">
+                                    {% for prod in products %}
+                                        <option value="{{ prod.id }}">{{ prod.name }} (PKR {{ "%.2f"|format(prod.price) }})</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-sm fw-bold px-4 mt-2">
+                            <i class="bi bi-check-circle"></i> Publish Offer & Link Items
+                        </button>
+                    </form>
+
+                    <h6 class="fw-bold text-dark mb-3">Active Promotional Banners & Items Included</h6>
+                    <div class="row g-3">
+                        {% for b in banners %}
+                        <div class="col-md-6">
+                            <div class="border rounded p-3 bg-white shadow-sm">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h6 class="fw-bold text-primary mb-0">{{ b.title }}</h6>
+                                    <span class="badge bg-danger fs-6">{{ b.discount_percentage }}% OFF</span>
+                                </div>
+                                <p class="small text-muted mb-2">{{ b.offer_text }}</p>
+                                
+                                <strong class="small text-dark d-block mb-1"><i class="bi bi-tags"></i> Included Discounted Items:</strong>
+                                <div class="bg-light p-2 rounded border small mb-2" style="max-height: 120px; overflow-y: auto;">
+                                    {% if b.linked_products %}
+                                        <ul class="mb-0 ps-3">
+                                            {% for lp in b.linked_products %}
+                                                <li>{{ lp.name }} - <span class="text-success fw-bold">PKR {{ "%.2f"|format(lp.price) }}</span></li>
+                                            {% endfor %}
+                                        </ul>
+                                    {% else %}
+                                        <span class="text-muted">No specific items attached to this banner.</span>
+                                    {% endif %}
+                                </div>
+
+                                <form action="{{ url_for('admin.delete_banner', banner_id=b.id) }}" method="POST">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger w-100 fw-bold">Remove Banner & Reset Prices</button>
+                                </form>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: INVENTORY CATALOG -->
         <div class="tab-pane fade" id="inventory-sec" role="tabpanel">
             <div class="card shadow border-0">
                 <div class="card-header bg-success text-white p-3 d-flex justify-content-between align-items-center">
@@ -167,9 +243,7 @@
                     </a>
                 </div>
                 <div class="card-body p-4">
-                    
                     <div class="row g-4 mb-4">
-                        <!-- BULK CSV UPLOAD FORM -->
                         <div class="col-md-6">
                             <div class="p-3 bg-light rounded border h-100">
                                 <h6 class="fw-bold text-dark mb-2">Bulk Upload Products via CSV</h6>
@@ -183,7 +257,6 @@
                             </div>
                         </div>
 
-                        <!-- ADD SINGLE PRODUCT FORM -->
                         <div class="col-md-6">
                             <div class="p-3 bg-light rounded border h-100">
                                 <h6 class="fw-bold text-success mb-2">Add Single New Product</h6>
@@ -218,8 +291,6 @@
                         </div>
                     </div>
 
-                    <!-- PRODUCTS LIST TABLE -->
-                    <h6 class="fw-bold text-dark mb-2">All Catalog Products</h6>
                     <div class="table-responsive">
                         <table class="table table-hover align-middle small">
                             <thead class="table-light">
@@ -248,7 +319,7 @@
             </div>
         </div>
 
-        <!-- SECTION 3: USERS DIRECTORY -->
+        <!-- TAB 4: USERS DIRECTORY -->
         <div class="tab-pane fade" id="users-sec" role="tabpanel">
             <div class="card shadow border-0">
                 <div class="card-header bg-primary text-white p-3">
@@ -271,7 +342,7 @@
                                 <tr>
                                     <td>#{{ u.id }}</td>
                                     <td class="fw-bold text-dark">{{ u.username }}</td>
-                                    <td>{{ u.email }}</td>
+                                    <td><a href="mailto:{{ u.email }}" class="text-decoration-none text-dark">{{ u.email }}</a></td>
                                     <td>
                                         <span class="badge {% if u.role=='admin' %}bg-danger{% else %}bg-info text-dark{% endif %}">
                                             {{ u.role }}
@@ -293,58 +364,7 @@
             </div>
         </div>
 
-        <!-- SECTION 4: OFFER BANNERS -->
-        <div class="tab-pane fade" id="banners-sec" role="tabpanel">
-            <div class="card shadow border-0">
-                <div class="card-header bg-primary text-white p-3">
-                    <h5 class="fw-bold mb-0"><i class="bi bi-megaphone"></i> Publish Offer Banners</h5>
-                </div>
-                <div class="card-body p-4">
-                    <form action="{{ url_for('admin.add_banner') }}" method="POST" enctype="multipart/form-data" class="mb-4 p-3 bg-light rounded border">
-                        <div class="row g-2">
-                            <div class="col-md-6 mb-2">
-                                <label class="form-label small fw-bold">Offer Title</label>
-                                <input type="text" name="title" class="form-control form-control-sm" placeholder="e.g. Ramadan Special Discount" required>
-                            </div>
-                            <div class="col-md-6 mb-2">
-                                <label class="form-label small fw-bold">Offer Subtext</label>
-                                <input type="text" name="offer_text" class="form-control form-control-sm" placeholder="e.g. Get 10% OFF on all items">
-                            </div>
-                            <div class="col-md-6 mb-2">
-                                <label class="form-label small fw-bold">Discount Percentage (%)</label>
-                                <input type="number" name="discount_percentage" class="form-control form-control-sm" placeholder="10" min="0" max="100" required>
-                            </div>
-                            <div class="col-md-6 mb-2">
-                                <label class="form-label small fw-bold">Banner Image File</label>
-                                <input type="file" name="banner_file" class="form-control form-control-sm">
-                            </div>
-                        </div>
-                        <button type="submit" class="btn btn-primary btn-sm fw-bold mt-2">
-                            <i class="bi bi-plus-circle"></i> Create Offer Banner
-                        </button>
-                    </form>
-
-                    <!-- EXISTING BANNERS -->
-                    <h6 class="fw-bold text-dark mb-2">Active Banners</h6>
-                    <div class="row g-3">
-                        {% for b in banners %}
-                        <div class="col-md-4">
-                            <div class="border rounded p-3 bg-light">
-                                <h6 class="fw-bold text-primary mb-1">{{ b.title }}</h6>
-                                <p class="small text-muted mb-1">{{ b.offer_text }}</p>
-                                <span class="badge bg-danger mb-2">{{ b.discount_percentage }}% OFF</span>
-                                <form action="{{ url_for('admin.delete_banner', banner_id=b.id) }}" method="POST" onsubmit="return confirm('Is banner ko delete karna chahte hain?');">
-                                    <button type="submit" class="btn btn-sm btn-outline-danger w-100 py-0">Remove Banner</button>
-                                </form>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- SECTION 5: CMS & STORE SETTINGS -->
+        <!-- TAB 5: CMS & SETTINGS WITH EDITABLE EMAIL OPTION -->
         <div class="tab-pane fade" id="cms-sec" role="tabpanel">
             <div class="card shadow border-0">
                 <div class="card-header bg-success text-white p-3">
@@ -355,19 +375,27 @@
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label small fw-bold">Store Title Name</label>
-                                <input type="text" name="store_title" class="form-control form-control-sm" placeholder="Ihsan Ul Haq & Sons General Store">
+                                <input type="text" name="store_title" class="form-control form-control-sm" value="{{ settings.get('store_title', '') }}" placeholder="Ihsan Ul Haq & Sons General Store">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label small fw-bold">Theme Primary Color</label>
-                                <input type="color" name="primary_color" class="form-control form-control-color w-100" value="#198754">
+                                <input type="color" name="primary_color" class="form-control form-control-color w-100" value="{{ settings.get('primary_color', '#198754') }}">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label small fw-bold">Contact Phone Number</label>
-                                <input type="text" name="contact_phone" class="form-control form-control-sm" placeholder="+92 300 0000000">
+                                <label class="form-label small fw-bold">Contact Mobile/Phone Number</label>
+                                <input type="text" name="contact_phone" class="form-control form-control-sm" value="{{ settings.get('contact_phone', '') }}" placeholder="+92 300 0000000">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label small fw-bold">WhatsApp Support Number</label>
-                                <input type="text" name="whatsapp_no" class="form-control form-control-sm" placeholder="923000000000">
+                                <label class="form-label small fw-bold">Official Store Contact Email</label>
+                                <input type="email" name="contact_email" class="form-control form-control-sm" value="{{ settings.get('contact_email', '') }}" placeholder="zakir.ullah0004@gmail.com">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">Store Physical Address</label>
+                                <input type="text" name="contact_address" class="form-control form-control-sm" value="{{ settings.get('contact_address', '') }}" placeholder="Main Market Road, City">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">WhatsApp Support Number (With Country Code e.g. 923000000000)</label>
+                                <input type="text" name="whatsapp_no" class="form-control form-control-sm" value="{{ settings.get('whatsapp_no', '') }}" placeholder="923000000000">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label small fw-bold">Store Logo File</label>
@@ -379,18 +407,18 @@
                             </div>
                             <div class="col-12">
                                 <label class="form-label small fw-bold">About Us Section Content</label>
-                                <textarea name="about_text" class="form-control form-control-sm" rows="3" placeholder="Welcome to Ihsan Store..."></textarea>
+                                <textarea name="about_text" class="form-control form-control-sm" rows="3" placeholder="Welcome to Ihsan Store...">{{ settings.get('about_text', '') }}</textarea>
                             </div>
                         </div>
                         <button type="submit" class="btn btn-success btn-sm fw-bold px-4 mt-3">
-                            <i class="bi bi-save"></i> Save CMS Settings
+                            <i class="bi bi-save"></i> Save CMS Settings & Apply Theme
                         </button>
                     </form>
                 </div>
             </div>
         </div>
 
-        <!-- SECTION 6: HARD DISK BACKUP -->
+        <!-- TAB 6: HARD DISK BACKUP -->
         <div class="tab-pane fade" id="backup-sec" role="tabpanel">
             <div class="card shadow border-0 border-start border-danger border-4">
                 <div class="card-header bg-danger text-white p-3">
