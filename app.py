@@ -12,10 +12,13 @@ socket.setdefaulttimeout(15)
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'ihsan_grocery_secret_key_2026')
 
-UPLOAD_FOLDER = os.path.join('static', 'uploads')
+# Upload folder configuration
+UPLOAD_FOLDER = os.path.join(app.root_path, 'static', 'uploads')
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024 
 
+# Mail Configuration
 raw_server = os.environ.get('MAIL_SERVER', 'smtp-relay.brevo.com').strip().replace("'", "").replace('"', '')
 app.config['MAIL_SERVER'] = raw_server if raw_server and not raw_server.isdigit() else 'smtp-relay.brevo.com'
 
@@ -42,6 +45,7 @@ app.config['MAIL_TIMEOUT'] = 15
 mail = Mail(app)
 app.extensions['mail'] = mail
 
+# Global Context Processor
 @app.context_processor
 def inject_global_site_data():
     cart = session.get('cart', {})
@@ -58,22 +62,31 @@ def inject_global_site_data():
     
     return dict(
         cart_count=total_count,
-        site_title=settings.get('store_title', 'Ihsan Grocery Shop'),
+        site_title=settings.get('store_title', 'Ihsan Ul Haq & Sons General Store'),
         site_cover=settings.get('cover_image', ''),
         site_logo=settings.get('site_logo', ''),
         primary_color=settings.get('primary_color', '#198754'),
         contact_phone=settings.get('contact_phone', '+92 300 0000000'),
-        contact_email=settings.get('contact_email', 'info@ihsangrocery.com'),
-        contact_address=settings.get('contact_address', 'Main Bazar, City'),
+        contact_email=settings.get('contact_email', 'zakir.ullah0004@gmail.com'),
+        contact_address=settings.get('contact_address', 'Main Market Road, City'),
         whatsapp_no=settings.get('whatsapp_no', '923000000000'),
-        about_text=settings.get('about_text', 'Welcome to Ihsan Ul Haq & Sons General Store.')
+        about_text=settings.get('about_text', 'Welcome to Ihsan Ul Haq & Sons General Store.'),
+        site_settings=settings
     )
 
-init_db()
+# Safe Database Initialization on Startup
+with app.app_context():
+    try:
+        init_db()
+        print("--> DB INITIALIZED SUCCESSFULLY ON BOOT")
+    except Exception as e:
+        print(f"--> DB INIT BOOT ERROR: {str(e)}")
 
+# Register Blueprints
 app.register_blueprint(auth_bp, url_prefix='/auth')
 app.register_blueprint(admin_bp, url_prefix='/admin')
 app.register_blueprint(customer_bp)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)
