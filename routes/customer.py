@@ -90,6 +90,18 @@ def generate_invoice_html(username, full_name, phone, address, city, order_id, c
     """
     return html_content
 
+def process_product_discount(products_raw):
+    products = []
+    for p in products_raw:
+        item = dict(p)
+        disc = item.get('discount_percentage')
+        if disc and disc > 0:
+            item['discounted_price'] = round(item['price'] * (1 - disc / 100), 2)
+        else:
+            item['discounted_price'] = None
+        products.append(item)
+    return products
+
 @customer_bp.route('/')
 def home():
     conn = get_db_connection()
@@ -101,6 +113,7 @@ def home():
     cursor.execute("SELECT * FROM banners ORDER BY id DESC")
     banners = cursor.fetchall()
     
+    # 1. Main Products Catalog
     query = '''
         SELECT products.*, banners.discount_percentage 
         FROM products 
@@ -117,23 +130,46 @@ def home():
         
     query += " ORDER BY products.id DESC"
     cursor.execute(query, params)
-    products_raw = cursor.fetchall()
-    
-    products = []
-    for p in products_raw:
-        item = dict(p)
-        if item['discount_percentage'] and item['discount_percentage'] > 0:
-            item['discounted_price'] = round(item['price'] * (1 - item['discount_percentage'] / 100), 2)
-        else:
-            item['discounted_price'] = None
-        products.append(item)
+    products = process_product_discount(cursor.fetchall())
+
+    # 2. Best Sellers Section
+    cursor.execute('''
+        SELECT products.*, banners.discount_percentage, SUM(order_items.quantity) as total_sold
+        FROM order_items
+        JOIN products ON order_items.product_id = products.id
+        LEFT JOIN banners ON products.banner_id = banners.id
+        GROUP BY products.id
+        ORDER BY total_sold DESC
+        LIMIT 4
+    ''')
+    best_sellers = process_product_discount(cursor.fetchall())
+
+    # 3. Recent Sales Section
+    cursor.execute('''
+        SELECT DISTINCT products.*, banners.discount_percentage
+        FROM order_items
+        JOIN products ON order_items.product_id = products.id
+        LEFT JOIN banners ON products.banner_id = banners.id
+        ORDER BY order_items.id DESC
+        LIMIT 4
+    ''')
+    recent_sales = process_product_discount(cursor.fetchall())
 
     # Dynamic fetch of all distinct categories
     cursor.execute("SELECT DISTINCT TRIM(category) as category FROM products WHERE category IS NOT NULL AND TRIM(category) != ''")
     categories = [r['category'] for r in cursor.fetchall()]
     
     conn.close()
-    return render_template('index.html', products=products, categories=categories, banners=banners, selected_category=category_filter, selected_banner=banner_filter)
+    return render_template(
+        'index.html', 
+        products=products, 
+        best_sellers=best_sellers,
+        recent_sales=recent_sales,
+        categories=categories, 
+        banners=banners, 
+        selected_category=category_filter, 
+        selected_banner=banner_filter
+    )
 
 @customer_bp.route('/about')
 def about():

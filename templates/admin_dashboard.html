@@ -180,8 +180,9 @@
                                 </select>
                             </div>
                             <div class="col-md-4 mb-2">
-                                <label class="form-label small fw-bold">Banner Image Upload</label>
-                                <input type="file" name="banner_file" class="form-control form-control-sm">
+                                <label class="form-label small fw-bold">Banner Image Upload or Direct URL Link</label>
+                                <input type="file" name="banner_file" class="form-control form-control-sm mb-1">
+                                <input type="text" name="image_url" class="form-control form-control-sm" placeholder="Or paste image web link (https://...)">
                             </div>
                             <div class="col-12 mb-2">
                                 <label class="form-label small fw-bold">Or Select Specific Individual Products (Hold Ctrl to select multiple)</label>
@@ -233,7 +234,7 @@
             </div>
         </div>
 
-        <!-- TAB 3: INVENTORY CATALOG WITH WORKING EDIT MODALS & DELETE FORMS -->
+        <!-- TAB 3: INVENTORY CATALOG WITH FIXED IMAGE UPLOAD FORM -->
         <div class="tab-pane fade" id="inventory-sec" role="tabpanel">
             <div class="card shadow border-0">
                 <div class="card-header bg-success text-white p-3 d-flex justify-content-between align-items-center">
@@ -260,6 +261,7 @@
                         <div class="col-md-6">
                             <div class="p-3 bg-light rounded border h-100">
                                 <h6 class="fw-bold text-success mb-2">Add Single New Product</h6>
+                                <!-- ENCTYPE ADDED FOR MULTIPART UPLOADS -->
                                 <form action="{{ url_for('admin.dashboard') }}" method="POST" enctype="multipart/form-data">
                                     <div class="row g-2">
                                         <div class="col-8">
@@ -280,7 +282,9 @@
                                             </select>
                                         </div>
                                         <div class="col-12">
-                                            <input type="file" name="product_file" class="form-control form-control-sm">
+                                            <label class="form-label small text-muted mb-0">Upload File or Paste Web Image URL</label>
+                                            <input type="file" name="product_file" class="form-control form-control-sm mb-1">
+                                            <input type="text" name="image_url" class="form-control form-control-sm" placeholder="Or paste Image Link e.g. https://images.unsplash.com/...">
                                         </div>
                                     </div>
                                     <button type="submit" class="btn btn-success btn-sm fw-bold w-100 mt-2">
@@ -309,7 +313,7 @@
                                 <tr>
                                     <td>
                                         {% if p.image_url %}
-                                            <img src="{{ p.image_url }}" alt="{{ p.name }}" class="rounded border" style="width: 40px; height: 40px; object-fit: cover;">
+                                            <img src="{{ p.image_url }}" alt="{{ p.name }}" class="rounded border" style="width: 40px; height: 40px; object-fit: cover;" onerror="this.onerror=null; this.src='https://via.placeholder.com/150?text=Ihsan';">
                                         {% else %}
                                             <div class="bg-light rounded border d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
                                                 <i class="bi bi-basket text-secondary fs-5"></i>
@@ -386,9 +390,10 @@
                                                 <textarea name="description" class="form-control form-control-sm" rows="2">{{ p.description or '' }}</textarea>
                                             </div>
                                             <div class="col-12">
-                                                <label class="form-label small fw-bold mb-1">Change Image (Optional)</label>
-                                                <input type="file" name="product_file" class="form-control form-control-sm">
-                                                <small class="text-muted d-block mt-1">Nayi file select na karne par purani image active rahegi.</small>
+                                                <label class="form-label small fw-bold mb-1">Change Image File or Paste Link</label>
+                                                <input type="file" name="product_file" class="form-control form-control-sm mb-1">
+                                                <input type="text" name="image_url" class="form-control form-control-sm" value="{{ p.image_url or '' }}" placeholder="Image Link (https://...)">
+                                                <small class="text-muted d-block mt-1">Nayi file select na karne par purani image link active rahegi.</small>
                                             </div>
                                         </div>
                                     </div>

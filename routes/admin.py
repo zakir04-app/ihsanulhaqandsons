@@ -68,7 +68,12 @@ def handle_image_upload(file_input_name):
         if ext in ALLOWED_EXTENSIONS:
             filename = secure_filename(file.filename)
             unique_name = f"upload_{os.urandom(4).hex()}_{filename}"
-            save_path = os.path.join(current_app.config['UPLOAD_FOLDER'], unique_name)
+            upload_folder = current_app.config.get('UPLOAD_FOLDER', os.path.join(current_app.root_path, 'static', 'uploads'))
+            
+            # Ensure upload folder exists on disk
+            os.makedirs(upload_folder, exist_ok=True)
+            
+            save_path = os.path.join(upload_folder, unique_name)
             file.save(save_path)
             return f"/static/uploads/{unique_name}"
     return None
